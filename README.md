@@ -1,10 +1,9 @@
-# Implementing Natural Language Processing to Explore the Lens of News Media
-
-
-## Project Description
+# Implementing Natural Language Processing to Examine the Lens of News Media
 
 Here you find all the accompanying code for the exam project in the course *Introduction to Cultural Data Science*
 in the autumn of 2021 at the University of Aarhus.
+
+## Project Description
 
 The aim of the project is to investegate the lens of news media by using natural
 language processing on a large corpus of news articles. I use named entity recognition and sentiment analysis. 
@@ -17,7 +16,7 @@ It would also be useful to incorporate a non-western newspaper such as Al Jazeer
 ### Reproducibility Notebook
 The most relevant file in the repository is the *Reproducibility Notebook*. 
 This file presents all the accompanying code as a notebook using r-markdown and the package bookdown. 
-There are two options to view the reproducibility notebook:
+There are two options to view the reproducibility notebook. I recommend option 1. 
 
 1. The slow but more robust option: First, clone the repository to a local repository. Then navigate to the folder named
 *_book* and open the file named *index.html*. I open the file in Google Chrome and it runs smoothly. 
@@ -36,6 +35,10 @@ You will also find the following folders:
 * *images/* which contains the images that are used inside the reproducibility notebook.
 * *python_scripts/* which contains all the python scripts in the format of Jupyter Notebook. It also contains all the data necessary to run the python code.
 * *shinyapp/* which contains all the scripts and data for running the shinyapp. 
+The app is hosted online: https://ah140797.shinyapps.io/shinyapp/. 
+If the link doesn’t work the application can be run in R. First, clone the repository to a local repository.
+Then navigate to the folder *shinyapp/* and open the file called *app.R* in RStudio. Then run the commands:
+`library(shiny)` and `runApp("<your working directory>/shinyapp/app.R")
 
 ## How to Run the Project
 
