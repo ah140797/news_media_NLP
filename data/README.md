@@ -4,7 +4,7 @@ The table below shows the metadata for all the datasets. Here you can see the fi
 
 <br />
 
-!<img src="https://image-url.type" width="200" height="200">(metadata_image.png)
+![<img src="metadata_image.png" width="220"/>](metadata_image.png)
 
 
 
