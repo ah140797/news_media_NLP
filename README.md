@@ -50,7 +50,7 @@ If the link doesn’t work the application can be run in R. First, clone the rep
 Then navigate to the folder *shinyapp/* and open the file called *app.R* in RStudio. Then run the commands:
 `library(shiny)` and `runApp("<your working directory>/shinyapp/app.R")`
 
-## prerequisites
+## Prerequisites
 
 Running the project requires some programming languages and integrated development enviroments (IDE). 
 The programming languages in the project are Python and R.
