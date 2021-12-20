@@ -35,8 +35,6 @@ There are two options to view the reproducibility notebook. I recommend option 1
 
 
 ### Other files
-You will also find 23 r-markdown scripts named through *01_*, *02_* etc. Each script
-corresponds to a chapter in the reproducibility notebook. The file *index.Rmd* is the first chapter of the reproducibility notebook.
 
 You will also find the following folders:
 
@@ -45,6 +43,8 @@ You will also find the following folders:
 * *figures/* which contains all the figures produced in R.
 * *images/* which contains the images that are used inside the reproducibility notebook.
 * *python_scripts/* which contains all the python scripts in the format of Jupyter Notebook. It also contains all the data necessary to run the python code.
+* *r_scripts/* which contain 23 r-markdown scripts named through *01_*, *02_* etc. Each script
+corresponds to a chapter in the reproducibility notebook. The file *index.Rmd* is the first chapter of the reproducibility notebook.
 * *shinyapp/* which contains all the scripts and data for running the shinyapp. 
 The app is hosted online: https://ah140797.shinyapps.io/shinyapp/. 
 If the link doesn’t work the application can be run in R. First, clone the repository to a local repository.
