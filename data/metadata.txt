@@ -1,0 +1,39 @@
+Here you will find explanations of the datasets in this folder. 
+
+
+** data_clean_full_1 
+This is the first half of the full dataset.
+It contains the following columns:
+-headline: which is the title/headline of the article
+-abstract: which is a small abstract of the article
+-url: which is a url leading to the the article on the NYT webpage
+-snippet: which is a the first sentences of the article
+-date: which is the publication date
+-section: which indicates the section, e.g. "World" or "Opinion
+-subsection:  which indicates the subsection, e.g."Asia Pacific" or "Book Review"
+-news_desk: which indicates the news desk, e.g. "Foreign Desk" or "Editoral Desk"
+-wordcount: which indicates the number of words in the article
+-bread_text: which is the breadtext of the article
+-bread_text_preprocessed: which is the breadtext after special characters and stopwords have been
+removed and after the text has been lemmatized. 
+-polarity: which is a float within the range [-1.0, 1.0] where -1.0 is negative and 1.0 is positive.
+-subjectivity: which is a float within the range [0.0, 1.0] where 0.0 is very objective and 1.0 is
+very subjective.
+topic: which indicates the topic of the article
+
+** data_clean_full 2
+This is the second half of the full dataset.
+It contains just the same columns as data_clean_full_1.
+NB. The two datasets are split because if they are combined they become too large for git to store.
+
+
+** TM_WORLD_BORDERS_SIMPL-0.3.shp
+This is a special kind of dataset of the class "sf". It contains the coordinates for countries and
+their ISO3 codes.
+
+
+** Folder data_additional/
+Here you find earlier versions of datasets used for plotting in the Chapters 02-04.
+In the name of the datasets you can see in which chapter it is used e.g "_cp3".
+
+ 
