@@ -6,7 +6,7 @@ in the autumn of 2021 at the University of Aarhus.
 ## Project Description
 
 The aim of the project is to investegate the lens of news media by using natural
-language processing on a large corpus of news articles. I use named entity recognition and sentiment analysis. 
+language processing on a large corpus of news articles. I conduct a named entity recognition and sentiment analysis. 
 
 Future implementations could be topic modelling and an analysis by gender. 
 It would also be useful to incorporate a non-western newspaper such as Al Jazeera.   
@@ -15,9 +15,8 @@ It would also be useful to incorporate a non-western newspaper such as Al Jazeer
 
 ### Reproducibility Notebook
 The most relevant file in the repository is the *Reproducibility Notebook*. 
-This file presents all the accompanying code as a notebook using r-markdown and the package bookdown. 
-
-<br />
+This file presents all the accompanying code as a notebook using r-markdown and the package bookdown.
+If you want to reproduce and understand the code for the project please go to this file. 
 
 Here is an overview of the content in the reproducibility notebook.
 ![Overview of the Reproducibility Notebook](images/flowchart_reproducibility_notebook.png)
@@ -51,7 +50,7 @@ If the link doesn’t work the application can be run in R. First, clone the rep
 Then navigate to the folder *shinyapp/* and open the file called *app.R* in RStudio. Then run the commands:
 `library(shiny)` and `runApp("<your working directory>/shinyapp/app.R")`
 
-## How to Run the Project
+## prerequisites
 
 Running the project requires some programming languages and integrated development enviroments (IDE). 
 The programming languages in the project are Python and R.
