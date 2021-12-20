@@ -1,0 +1,46 @@
+
+# (PART) LDA Topic Modelling {-}
+
+# Overview {-}
+
+## What is an LDA topic model? {-}
+
+Next step on the agenda is something called LDA topic modeling. Topic modeling is a type of statistical modeling for discovering "topics" that occur in a collection of documents. If we have a large collection of news articles some of them are more similar to others. Topic modelling cluster together articles that are similar under an umbrella called a topic. 
+
+Latent Dirichlet Allocation (LDA) is an example of a topic model. **Latent** means that there are "hidden" topics in the articles.  **Dirichlet** refers to a Dirichlet distribution. We have two dirichlet distributions:
+
+1. A distribution associating articles with topics. Each article is assigned a probability of belonging to a certain topic.
+2. A distribution associating topics with words. Each topic is assigned a probability of containing a certain word. 
+
+These two distributions are put together to generate a "fake article". This fake article is compared to the actual article to see how similar they are.  
+
+**Allocation** is the process of allocating topics to documents and words of the documents to topics. 
+
+## Example {-}
+
+Lets say we create an LDA topic model with 3 topics: Science, politics and sports. In this model each article is assigned 3 probabilities; one probability for each topic. Lets say that article x has the following probabilities of belonging to the 3 topics:
+
+* Science: 0.02
+* Politics: 0.03
+* Sports: 0.95
+
+Article x clearly belongs more to the topic sports than to the other topics. 
+
+Lets say that article y has the following probabilities of belonging to the 3 topics:
+
+* Science: 0.45
+* Politics: 0.10
+* Sports: 0.45
+
+Now, it is more difficult which topic article y belongs to. 
+
+The goal of this example is to illustrate that each article in an LDA topic model is comprised of a distribution of topics. And some articles have clear distributions, making them belong more clearly to a single topic whereas other articles are more difficult to place inside a single topic. 
+
+
+## The goal of LDA topic model {-}
+
+The goal of topic modeling is to assign a topic to each article. Then we want to make visualizations comparing the topics in New York Times to the topics in The Guardian. We will also make a timeline showing when certain topics have been more or less prevalent. This will hopefully give an overview of certain trends in both newspapers.  
+
+
+
+

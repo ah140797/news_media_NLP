@@ -1,0 +1,18 @@
+
+# (PART) Sentiment Analysis {-}
+
+# Overview {-}
+
+We are going to make a simple sentiment analysis which is the process of detecting positive or negative sentiment in text. This is another huge topic in NLP and many advanced analysis can be done but this is beyond the scope of this project.
+
+We are going to extract two key features `polarity` and `subjectivity` of each article 
+
+* Polarity is a float within the range [-1.0, 1.0] where -1.0 is negative and 1.0 is positive.
+* Subjectivity is a float within the range [0.0, 1.0] where 0.0 is very objective and 1.0 is very subjective.
+
+
+The goal is to make visualizations over time showing if certain periods have been more or less negative.
+
+
+* In chapter \@ref(c6) we will ...
+* In chapter \@ref(c7) we will ...

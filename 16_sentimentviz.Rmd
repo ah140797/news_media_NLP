@@ -1,0 +1,170 @@
+# Sentiment Vizualisations
+
+In this Chapter I will make visualizations on the differences between newspapers on the scores of `polarity` and `subjectivity`. 
+
+The code in this chapter is mainly for making plots. The commenting will be sparse as it would be too tedious to comment everything. 
+
+First thing first, we start by loading the package `tidyverse` [@tidyverse2019], `patchwork` [@R-patchwork] and `wesanderson` [@R-wesanderson].
+
+```{r}
+pacman::p_load(tidyverse, patchwork, wesanderson)
+```
+
+Then we load the data
+```{r, message = F}
+#NYT
+df1 <- read_csv("data/new_york_times/NYT_clean_1.csv")
+df2 <- read_csv("data/new_york_times/NYT_clean_2.csv")
+df3 <- read_csv("data/new_york_times/NYT_clean_3.csv")
+
+df <- rbind(df1, df2, df3)
+df_NYT <- as_tibble(df)
+
+#The Guardian
+df_guardian <- read_csv("data/guardian/guardian_clean.csv")
+```
+
+## Data wrangling
+
+Some wrangling is needed to make the plots. Here we add three new columns to each dataset: `newspaper` indicating which newspaper the article is from. We also add `month`. . 
+```{r}
+df_NYT <- df_NYT %>% 
+  mutate(newspaper = "New York Times",
+         month = lubridate::floor_date(date, "month"),
+         month = as.Date(month))
+
+df_guardian <- df_guardian %>% 
+  mutate(newspaper = "The Guardian",
+         month = lubridate::floor_date(date, "month"),
+         month = as.Date(month))
+```
+
+Then we add two new columns `polarity_month` and `subjectivity_month` which is the mean polarity and subjectivety of the given month. This is done by grouping articles by month, taking the mean of polarity and binding this column to the original dataset.
+```{r}
+#grouping and summarizing
+df_NYT_month <- df_NYT %>% group_by(month) %>% 
+  summarize(polarity_month = mean(polarity),
+            subjectivity_month = mean(subjectivity))
+
+df_guardian_month <- df_NYT %>% group_by(month) %>% 
+  summarize(polarity_month = mean(polarity),
+            subjectivity_month = mean(subjectivity))
+
+
+#binding
+df_NYT <- left_join(df_NYT, df_NYT_month)
+df_guardian <- left_join(df_guardian, df_guardian_month)
+```
+
+Then we make a dataset with both `df_NYT` and `df_guardian` so we can plot both newspapers in the same plot.
+```{r}
+df_both <- rbind(df_NYT, df_guardian)
+df_both <- as_tibble(df_both)
+```
+
+Basta. 
+
+## Color Palettes
+
+Here I quickly define some color palettes with colors that i like. These palettes will be used for different plots. The same colors will be used consistently throughout the notebook.
+```{r}
+color_palette_newspaper <- c(wes_palette("Chevalier1")[1], wes_palette("Darjeeling2")[2])
+```
+
+## Polarity 
+
+Polarity is a float within the range [-1.0, 1.0] where -1.0 is negative and 1.0 is positive.
+
+### Summary stats
+
+We start by doing some quick summary stats to see if the polarity differ between newspapers.
+```{r}
+mean(df_NYT$polarity)
+mean(df_guardian$polarity)
+```
+
+```{r denspolarity}
+df_both %>% 
+  ggplot() +
+  aes(x=polarity, fill = newspaper) + 
+  geom_density(alpha = 0.5) +
+  geom_vline(xintercept = mean(df_NYT$polarity), color = color_palette_newspaper[1]) +
+  geom_vline(xintercept = mean(df_guardian$polarity), color = color_palette_newspaper[2]) +
+  theme_minimal() + 
+  scale_fill_manual(values = color_palette_newspaper, name = "") + 
+  labs(x="Polarity", y="Density", title="Distributions of Polarity") + 
+  theme(legend.position="bottom")
+```
+
+**The mean polarity of the articles in New York Times is 0.0204.**
+**The mean polarity of the articles in The Guardian is 0.0471.**
+Both Newspapers have a positive Polarity.
+
+The values of polarity are quite small so the difference is small. Nonetheless mean polarity of the articles in The Guardian is actually twice as large as the mean polarity in New York Times. However, taking a look at \@ref(fig:denspolarity) there is hadly a difference between the two distributions. We could make some bayesian statistics, but this is beyond the scope of this project. 
+
+### Timeline
+
+```{r, message = F, warning = F}
+q <- df_both %>% 
+  ggplot() + 
+  aes(x=month, color = newspaper) +
+  geom_smooth(method = "gam", aes(y=polarity_month), size = 1.2) + 
+  geom_point(aes(y=polarity_month), size = 0.3) + 
+  scale_x_date(limits = as.Date(c("1996-01-01", "2021-11-01")), breaks = "3 years", date_labels = "%Y") + 
+  facet_wrap(~newspaper, nrow = 2) + 
+  labs(x="Date", y = "Polarity", title = "Timeline of Polarity") +
+  theme_minimal() +
+  scale_color_manual(values = color_palette_newspaper, name = "") +
+  theme(legend.position="none")
+
+q  
+```
+
+
+## Subjectivity
+
+Subjectivity is a float within the range [0.0, 1.0] where 0.0 is very objective and 1.0 is very subjective.
+
+### Summary stats
+
+We start by doing some quick summary stats to see if the subjectivity differ between newspapers.
+```{r}
+mean(df_NYT$subjectivity)
+mean(df_guardian$subjectivity)
+```
+
+```{r denssubjectivity}
+df_both %>% 
+  ggplot() +
+  aes(x=subjectivity, fill = newspaper) + 
+  geom_density(alpha = 0.5) +
+  geom_vline(xintercept = mean(df_NYT$subjectivity), color = color_palette_newspaper[1]) +
+  geom_vline(xintercept = mean(df_guardian$subjectivity), color = color_palette_newspaper[2]) +
+  theme_minimal() + 
+  scale_fill_manual(values = color_palette_newspaper, name = "") + 
+  labs(x="Subjectivity", y="Density", title="Distributions of Subjectivity") +
+  theme(legend.position="bottom")
+```
+**The mean subjectivity of the articles in New York Times is 0.383.**
+**The mean subjectivity of the articles in The Guardian is 0.392.**
+Both Newspapers have a medium subjectivity, meaning that they in between objective and non-objective. 
+
+There is no real difference between the mean values of subjectivity for the two newspapers. Taking a look at \@ref(fig:denssubjectivity) there is hardly a difference between the two distributions. We could make some bayesian statistics, but this is beyond the scope of this project.
+
+### Timeline
+
+```{r, message = F, warning = F}
+q <- df_both %>% 
+  ggplot() + 
+  aes(x=month, color = newspaper) +
+  geom_smooth(method = "gam", aes(y=subjectivity_month), size = 1.2) + 
+  geom_point(aes(y=subjectivity_month), size = 0.3) + 
+  scale_x_date(limits = as.Date(c("1996-01-01", "2021-11-01")), breaks = "3 years", date_labels = "%Y") +  
+  facet_wrap(~newspaper, nrow = 2) + 
+  labs(x="Date", y = "Subjectivity", title = "Timeline of Subjectivity") +
+  theme_minimal() +
+  scale_color_manual(values = color_palette_newspaper, name = "") +
+  theme(legend.position="none")
+
+q  
+```

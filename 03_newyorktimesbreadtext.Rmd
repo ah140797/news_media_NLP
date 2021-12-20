@@ -1,0 +1,153 @@
+
+
+# Scrape bread text of articles
+
+<style>
+div.blue { background-color:#93c47d; border-radius: 5px; padding: 20px;}
+</style>
+<div class = "blue">
+This chapter is written in Python. To see the original file go to the folder python_scripts/.
+</div>
+
+## Scraping in Python
+The cleaned dataframe `df_NYT` contains a coloumn called `url`. Clicking on this url 
+leads us to the article on New York Times. Now we are going to move into Python
+to scrape the breadtext from the URL's. There is a package called `BeautifulSoup`
+which makes this less painful to do. That is why i use Python here.
+
+The chunk below loads packages and the data. It also sets up variables for the iteration.  
+```{python, eval = F, python.reticulate = F}
+from bs4 import BeautifulSoup
+import requests
+import pandas as pd
+
+#importing the cleaned data
+df_NYT = pd.read_csv("data/new_york_times/data_additional/NYT_clean_cp2.csv")
+```
+
+The chunk below is where the work takes place. It first sets up variables for the iteration. The for-loop iterates through all the url's in the dataframe, makes a "soup" which is basically the html for that url. It then looks through the soup to find the tag "p" and the class "css-axufdj evys1bk0". All the breadtext exist within this tag and class. I learned this by opening up an articles in Google Chrome and inspecting the html code by right-clicking and choosing *Inspect*. Then it appends the bread text to a list. Lastly it writes a new column to the dataframe containing the bread text for each article and overwrites the old dataframe.  
+```{python looping, eval = F, python.reticulate = F}
+#making an empty list where the breadtext from all articles can be appended to
+all_bread = []
+
+#making an index to print in the for-loop
+i = 0
+
+#interate through each url in df, scrape the breadtext and appending it to the list all_bread
+for url in df_NYT['url']:
+    # setting up empty string
+    bread_article = ""
+
+    #sending request for url
+    page = requests.get(url)
+
+    #creating soup (lingo from the package beautifulsoup)
+    soup = BeautifulSoup(page.text, "lxml")
+
+    #finding the breadtext using beautifulsoup
+    for pre_bread in soup.find_all("p", class_="css-axufdj evys1bk0"):
+        bread = pre_bread.text
+        bread_article += " " + bread
+
+    all_bread.append(bread_article)
+    i += 1
+    print("Scraping article ", i, "/", len(df_NYT.index))
+    
+#making a new column in df containing all the breadtext for each observation respectively
+df_NYT['bread_text'] = all_bread
+
+#saving the df
+df_NYT.to_csv("data/new_york_times/data_additional/NYT_clean.csv", index = False)
+
+```
+
+
+The dataset is 148 Mb large which is actually too large for Github, that has a file limit on 100 MB. So here we just split the data into two datasets at 74 Mb each.
+```{r, message = F, eval = F}
+#reading the full dataset
+df_NYT <- read_csv("data/new_york_times/data_additional/NYT_clean.csv")
+
+#splitting
+df_NYT_1 <- df_full[1:11750,]
+df_NYT_2 <- df_full[11751:23500,]
+
+#saving the new smaller datasets
+write_csv(df_NYT_1, "data/new_york_times/data_additional/NYT_clean_1_cp3.csv")
+write_csv(df_NYT_2, "data/new_york_times/data_additional/NYT_clean_2_cp3.csv")
+```
+
+## Inspecting the bread text
+
+We load the data from the two smaller datasets.
+```{r, message = F}
+df1 <- read_csv("data/new_york_times/data_additional/NYT_clean_1_cp3.csv")
+df2 <- read_csv("data/new_york_times/data_additional/NYT_clean_1_cp3.csv")
+
+df_NYT <- rbind(df1,df2)
+df_NYT <- as_tibble(df_NYT)
+```
+
+
+
+All right. Let's see how the new coloumn looks when we load it into R. It is a wall of text - not very
+readable for a human, but that is quite allright. 
+```{r inspecting the breadtext}
+#printing the breadtext from the 11th. article.
+c(df_NYT[11,4])
+```
+
+We also check how many articles were failed to scrape. That number is 2.346 which is ~ 10% of all the articles.  
+```{r inspecting the breadtext1}
+#checking how many articles failed to scrape
+sum(is.na(df_NYT$bread_text))
+```
+
+Let's inspect these missing articles a bit further. Do they come from a specific time period? 
+```{r yeye, warning = F, fig.cap= "Timeline of the number of missing articles and compared to intact articles.", fig.width=10, message = F}
+#making a dataframe containing the sum of missing articles for each date
+y1 <- df_NYT %>% 
+    filter(is.na(bread_text)) %>% 
+    group_by(date) %>% 
+    tally() %>% 
+    rename(missing_articles = n) %>% 
+    ungroup()
+
+#making a dataframe containing the sum of articles for each date
+y2 <- df_NYT %>% 
+    filter(!is.na(bread_text)) %>%
+    group_by(date) %>% 
+    tally() %>% 
+    rename(articles = n) %>% 
+    ungroup()
+
+#joining the two dataframes together and plotting articles and missing articles a ton top of each other according to date.
+left_join(y2, y1) %>% 
+    pivot_longer(
+        cols = c("missing_articles", "articles"),
+        names_to = "article_type"
+    ) %>% 
+    ggplot() + 
+    aes(x=date, y= value, color = article_type) + 
+    geom_line() +
+    labs(y = "hits")
+
+```
+Eyeballing figure \@ref(fig:yeye) it is the case that the missing articles stems from certain time periods around 2001 and especially around 2009-2010. The implications for the further analysis is that there will be some weak points in the timeline, where the number of articles to be analyzed are a bit sparse. Furthermore, some valueable articles might be missing at crucial points in the timeline. However, there are still not any points in the timeline where the number of articles drops completely, so that is good.
+
+
+So we save two new dataframes where the articles with missing bread text are filtered out. Our new dataframe has 21.154 rows corresponding to 21.154 articles. 
+```{r, eval = F}
+#filtering out missing articles
+df_NYT <- df_full %>%  filter(!is.na(bread_text))
+
+#splitting
+df_NYT_1 <- df_full[1:10577,]
+df_NYT_2 <- df_full[10578:21154,]
+
+#saving the new smaller datasets
+write_csv(df_NYT_1, "data/new_york_times/NYT_clean_1.csv")
+write_csv(df_NYT_2, "data/new_york_times/NYT_clean_2.csv")
+```
+
+
+

@@ -1,0 +1,481 @@
+# Organisations Vizualisations
+
+In this Chapter I will make vizualisations of key organisations to see which periods of time that these organizations were relevant for the Taliban-conflict. I also compare the two newspapers to see if they focus more or less on these key organizations 
+
+The code in this chapter is mainly for making plots. The commenting will be sparse as it would be too tedious to comment everything. 
+
+First thing first, we start by loading the package `tidyverse` [@tidyverse2019], `patchwork` [@R-patchwork] and `wesanderson` [@R-wesanderson].
+
+```{r}
+pacman::p_load(tidyverse, patchwork, wesanderson)
+```
+
+Then we load the dataset containing organisations for both newspapers. 
+```{r, message = F}
+org_nyt <- read_csv("data/new_york_times/data_NER/org.csv")
+org_guardian <- read_csv("data/guardian/data_NER/org.csv")
+```
+
+Here we get a quick look at what is interesting to pursue in our plots.
+```{r, results = F}
+org_nyt %>%
+  group_by(ORG) %>% 
+  summarize(n = sum(count)) %>% 
+  arrange(desc(n)) 
+
+org_guardian %>%
+  group_by(ORG) %>% 
+  summarize(n = sum(count)) %>% 
+  arrange(desc(n)) 
+```
+
+The following key organizations will be plotted:
+
+* **Western Alliances**
+   * *Nato*
+* **Militant Islamic Organizations**
+   * *Taliban*
+   * *Al Queda*
+   * *Hamas*
+   * *Hezbollah*
+
+
+## Standardize names of organisations
+
+The name of organizations appears differently. For example NATO appears under several different names such as *Nato* or *NATO*. We will standardize these names so they all appear as the same name.
+```{r}
+org_nyt <- org_nyt %>% 
+  mutate(
+    #NATO
+    ORG = ifelse(ORG == "nato", "NATO", ORG),
+    ORG = ifelse(ORG == "Nato", "NATO", ORG),
+    #Al Qaeda
+    ORG = ifelse(ORG == "qaeda", "Qaeda", ORG),
+    ORG = ifelse(ORG == "Qaida", "Qaeda", ORG),
+    #Taliban
+    ORG = ifelse(ORG == "taliban", "Taliban", ORG),
+    #Hizbollah
+    ORG = ifelse(ORG == "Hizbollah", "Hezbollah", ORG),
+  )
+
+org_guardian <- org_guardian %>% 
+  mutate(
+    #NATO
+    ORG = ifelse(ORG == "nato", "NATO", ORG),
+    ORG = ifelse(ORG == "Nato", "NATO", ORG),
+    #Al Qaeda
+    ORG = ifelse(ORG == "qaeda", "Qaeda", ORG),
+    ORG = ifelse(ORG == "Qaida", "Qaeda", ORG),
+    #Taliban
+    ORG = ifelse(ORG == "taliban", "Taliban", ORG),
+    #Hizbollah
+    ORG = ifelse(ORG == "Hizbollah", "Hezbollah", ORG),
+  )
+```
+
+
+## Standardize to hits pr. article and grouping by month
+
+In order to compare the two newspapers we need to standardize the count according to the number of articles. We will make a new variable called `penalized_count` for both `org_nyt` and `org_guardian`.  
+
+We start by adding a new column `year` to `org_nyt` and `org_guardian`.
+```{r}
+org_nyt <- org_nyt %>% 
+  mutate(month = lubridate::floor_date(date, "month"),
+         month = as.Date(month))
+
+org_guardian <- org_guardian %>% 
+  mutate(month = lubridate::floor_date(date, "month"),
+         month = as.Date(month))
+```
+
+Then we load the dataset containing articles for both newspapers as `df_nyt` and `df_guardian`. 
+```{r, message = F}
+df1 <- read_csv("data/new_york_times/NYT_clean_1.csv")
+df2 <- read_csv("data/new_york_times/NYT_clean_2.csv")
+df3 <- read_csv("data/new_york_times/NYT_clean_3.csv")
+
+df <- rbind(df1, df2, df3)
+df_nyt <- as_tibble(df)
+
+df_guardian <- read_csv("data/guardian/guardian_clean.csv")
+```
+
+Here we add a new column to each dataset called `month` .
+```{r}
+df_nyt <- df_nyt %>% 
+  mutate(month = lubridate::floor_date(date, "month"),
+         month = as.Date(month))
+
+df_guardian <- df_guardian %>% 
+  mutate(month = lubridate::floor_date(date, "month"),
+         month = as.Date(month))
+```
+
+Then we add a new column `sum_articles_month` which is the sum of articles for a given year. 
+```{r}
+df_nyt <- df_nyt %>% group_by(month) %>% 
+  tally() %>% 
+  rename(sum_articles_month = n)
+
+df_guardian <- df_guardian %>% group_by(month) %>% 
+  tally() %>% 
+  rename(sum_articles_month = n)
+```
+
+For the organisations datasets,We group  by organisation and year and summarize the count. So we get a score for each country for each month. 
+```{r}
+org_nyt <- org_nyt %>% 
+  group_by(ORG, month) %>% 
+  summarise(count = sum(count))
+
+org_guardian <- org_guardian %>% 
+  group_by(ORG, month) %>% 
+  summarise(count = sum(count))
+```
+
+Then we merge `df_nyt` with `org_nyt` so that we now have a column in `org_nyt` called `sum_articles_month` which indicates the total number of articles published in the given month. I do the same for `df_guardian` and `org_guardian`. 
+```{r}
+org_nyt <- left_join(org_nyt, df_nyt, by = "month")
+org_guardian <- left_join(org_guardian, df_guardian, by = "month")
+```
+
+Then we make the columns `penalized_count` and `penalized_count_round` which indicates the number of hits for a given person pr. month pr. total articles in that month.We also make a column `newspaper` to indicate the newspaper. Some months have very few articles, so we also filter out out these, because they can make unreliable values of `penalized_count`.  
+```{r}
+org_nyt <- org_nyt %>% 
+  mutate(
+    penalized_count = count/sum_articles_month,
+    penalized_count_round = round(penalized_count, 1),
+    newspaper = "New York Times"
+  ) %>% 
+  filter(sum_articles_month > 30)
+
+org_guardian <- org_guardian %>% 
+  mutate(
+    penalized_count = count/sum_articles_month,
+    penalized_count_round = round(penalized_count, 1),
+    newspaper = "The Guardian"
+  ) %>% 
+  filter(sum_articles_month > 30)
+```
+
+Then i bind the datasets together so we can plot them in the same plot and select the columns needed.
+```{r}
+df_org <- rbind(org_nyt, org_guardian)
+df_org <- as_tibble(df_org) 
+```
+
+Now we have a dataset that is ready for plots. 
+
+## Color Palettes
+
+Here I quickly define some color palettes with colors that i like. These palettes will be used for different plots. The same colors will be used consistently throughout the notebook.
+```{r}
+color_palette_newspaper <- c(wes_palette("Chevalier1")[1], wes_palette("Darjeeling2")[2])
+```
+
+## Summary plot
+```{r}
+summary_nyt <- df_org %>% 
+  filter(newspaper == "New York Times") %>% 
+  filter(ORG %in% c("NATO", "Taliban", "Qaeda", "Hamas", "Hezbollah")) %>% 
+  group_by(ORG) %>% 
+  summarise(count = sum(count)) %>%  
+  mutate(hits_pr_article = count/21109) %>% 
+  arrange(desc(hits_pr_article)) %>% 
+  ggplot() + 
+  aes(x=reorder(ORG, hits_pr_article), y=hits_pr_article) +
+  geom_bar(stat = "identity", fill = color_palette_newspaper[1]) + 
+  coord_flip() + 
+  labs(x= "Organisation", y="Hits per Article", title = "New York Times") + 
+  theme_minimal() + 
+  ylim(0,4.2)
+
+summary_guardian <- df_org %>% 
+  filter(newspaper == "The Guardian") %>% 
+  filter(ORG %in% c("NATO", "Taliban", "Qaeda", "Hamas", "Hezbollah")) %>%
+  group_by(ORG) %>% 
+  summarise(count = sum(count)) %>%  
+  mutate(hits_pr_article = count/9609) %>% 
+  arrange(desc(hits_pr_article)) %>% 
+  ggplot() + 
+  aes(x=reorder(ORG, hits_pr_article), y=hits_pr_article) +
+  geom_bar(stat = "identity", fill = color_palette_newspaper[2]) + 
+  coord_flip() + 
+  labs(x= "Organisation", y="Hits per Article", title = "The Guardian") + 
+  theme_minimal() + 
+  ylim(0,4.2)
+
+summary_nyt / summary_guardian +
+  plot_annotation(title = "Organisations",
+                  theme = theme(plot.title = element_text(size=18)))
+```          
+
+## NATO
+
+```{r, message = F, warning = F}
+nato <- df_org %>% 
+  filter(ORG == "NATO") %>% 
+  ggplot() +
+  aes(x=month, y=penalized_count, color = newspaper) + 
+  geom_point(size = 0.9) +
+  geom_smooth(alpha=0.2, size = 1.2, method = "gam") +
+  labs(y="Hits per Article", x = "Date", title = "NATO") +
+  facet_wrap(~newspaper, nrow = 2) +
+  scale_x_date(limits = as.Date(c("2000-01-01", "2021-11-01"))) +
+  theme_minimal() +
+  scale_color_manual(values = color_palette_newspaper, name = "") +
+  theme(legend.position="none")
+  
+nato
+```
+
+## Taliban
+```{r, message = F, warning = F}
+taliban <- df_org %>% 
+  filter(ORG == "Taliban") %>% 
+  ggplot() +
+  aes(x=month, y=penalized_count, color = newspaper) + 
+  geom_point(size = 0.9) +
+  geom_smooth(alpha=0.2, size = 1.2, method = "gam") +
+  labs(y="Hits per Article", x = "Date", title = "Taliban") +
+  facet_wrap(~newspaper, nrow = 2) +
+  scale_x_date(limits = as.Date(c("2000-01-01", "2021-11-01"))) +
+  theme_minimal() +
+  scale_color_manual(values = color_palette_newspaper, name = "") +
+  theme(legend.position="none")
+  
+taliban
+```
+
+## Al Qaeda
+```{r, message = F, warning = F}
+qaeda <- df_org %>% 
+  filter(ORG == "Qaeda") %>% 
+  ggplot() +
+  aes(x=month, y=penalized_count, color = newspaper) + 
+  geom_point(size = 0.9) +
+  geom_smooth(alpha=0.2, size = 1.2, method = "gam") +
+  labs(y="Hits per Article", x = "Date", title = "Al Qaeda") +
+  facet_wrap(~newspaper, nrow = 2) +
+  scale_x_date(limits = as.Date(c("2000-01-01", "2021-11-01"))) +
+  theme_minimal() +
+  scale_color_manual(values = color_palette_newspaper, name = "") +
+  theme(legend.position="none")
+  
+qaeda
+```
+
+## Hamas
+```{r, message = F, warning = F}
+hamas <- df_org %>% 
+  filter(ORG == "Hamas") %>% 
+  ggplot() +
+  aes(x=month, y=penalized_count, color = newspaper) + 
+  geom_point(size = 0.9) +
+  geom_smooth(alpha=0.2, size = 1.2, method = "gam") +
+  labs(y="Hits per Article", x = "Date", title = "Hamas") +
+  facet_wrap(~newspaper, nrow = 2) +
+  scale_x_date(limits = as.Date(c("1999-01-01", "2021-11-01"))) +
+  theme_minimal() +
+  scale_color_manual(values = color_palette_newspaper, name = "") +
+  theme(legend.position="none")
+  
+hamas
+```
+
+## Hezbollah
+```{r, message = F, warning = F}
+hezbollah <- df_org %>% 
+  filter(ORG == "Hezbollah") %>% 
+  ggplot() +
+  aes(x=month, y=penalized_count, color = newspaper) + 
+  geom_point(size = 0.9) +
+  geom_smooth(alpha=0.2, size = 1.2, method = "gam") +
+  labs(y="Hits per Article", x = "Date", title = "Hezbollah") +
+  facet_wrap(~newspaper, nrow = 2) +
+  scale_x_date(limits = as.Date(c("1999-01-01", "2021-11-01"))) +
+  theme_minimal() +
+  scale_color_manual(values = color_palette_newspaper, name = "") +
+  theme(legend.position="none")
+  
+hezbollah
+```
+
+## Combined Plots for all Key Organisations
+
+### New York Times
+
+All organizations for New York Times.
+```{r, message = F, warning = F, fig.dim=c(10,5)}
+nato <- df_org %>% 
+  filter(ORG == "NATO") %>%
+  filter(newspaper == "New York Times") %>% 
+  mutate(
+    organisation = "NATO"
+  ) 
+
+taliban <- df_org %>% 
+  filter(ORG == "Taliban") %>%
+  filter(newspaper == "New York Times") %>% 
+  mutate(
+    organisation = "Taliban"
+  ) 
+
+qaeda <- df_org %>% 
+  filter(ORG == "Qaeda") %>%
+  filter(newspaper == "New York Times") %>% 
+  mutate(
+    organisation = "Al Qaeda"
+  ) 
+
+hamas <- df_org %>% 
+  filter(ORG == "Hamas") %>%
+  filter(newspaper == "New York Times") %>% 
+  mutate(
+    organisation = "Hamas"
+  ) 
+
+hezbollah <- df_org %>% 
+  filter(ORG == "Hezbollah") %>%
+  filter(newspaper == "New York Times") %>% 
+  mutate(
+    organisation = "Hezbollah"
+  ) 
+
+pres <- rbind(nato, taliban, qaeda, hamas, hezbollah)
+
+pres <- as_tibble(pres) %>% 
+  mutate(organisation = as.factor(organisation))
+
+pres <- pres %>% 
+  mutate(organisation = fct_relevel(organisation, c("NATO", "Taliban", "Al Queda", "Hamas")))
+
+pres_nyt <- pres %>% 
+  ggplot() + 
+  aes(x=month, y=penalized_count, color = organisation) + 
+  geom_point(size = 0.5) +
+  geom_smooth(method="loess", se = F, size = 1.2) +
+  labs(y="Hits per Article", x = "Date", title = "Organisations Mentioned in New York Times") +
+  scale_x_date(limits = as.Date(c("1996-01-01", "2021-11-01")), breaks = "8 years", date_labels = "%Y") +
+  theme_minimal() +
+  scale_color_manual(values = wes_palette(name = "Darjeeling1"), name = "")
+
+pres_nyt
+```
+
+### The Guardian
+
+All organizations for the Guardian.
+```{r, message = F, warning = F, fig.dim=c(10,5)}
+nato <- df_org %>% 
+  filter(ORG == "NATO") %>%
+  filter(newspaper == "The Guardian") %>% 
+  mutate(
+    organisation = "NATO"
+  ) 
+
+taliban <- df_org %>% 
+  filter(ORG == "Taliban") %>%
+  filter(newspaper == "The Guardian") %>% 
+  mutate(
+    organisation = "Taliban"
+  ) 
+
+qaeda <- df_org %>% 
+  filter(ORG == "Qaeda") %>%
+  filter(newspaper == "The Guardian") %>% 
+  mutate(
+    organisation = "Al Qaeda"
+  ) 
+
+hamas <- df_org %>% 
+  filter(ORG == "Hamas") %>%
+  filter(newspaper == "The Guardian") %>% 
+  mutate(
+    organisation = "Hamas"
+  ) 
+
+hezbollah <- df_org %>% 
+  filter(ORG == "Hezbollah") %>%
+  filter(newspaper == "The Guardian") %>% 
+  mutate(
+    organisation = "Hezbollah"
+  ) 
+
+pres <- rbind(nato, taliban, qaeda, hamas, hezbollah)
+
+pres <- as_tibble(pres) %>% 
+  mutate(organisation = as.factor(organisation))
+
+pres <- pres %>% 
+  mutate(organisation = fct_relevel(organisation, c("NATO", "Taliban", "Al Qaeda", "Hamas", "Hezbollah")))
+
+pres_guardian <- pres %>% 
+  ggplot() + 
+  aes(x=month, y=penalized_count, color = organisation) + 
+  geom_point(size = 0.5) +
+  geom_smooth(method="loess", se = F, size = 1.2) +
+  labs(y="Hits per Article", x = "Date", title = "Organisations Mentioned in The Guardian") +
+  scale_x_date(limits = as.Date(c("1996-01-01", "2021-11-01")), breaks = "8 years", date_labels = "%Y") +
+  theme_minimal() +
+  scale_color_manual(values = wes_palette(name = "Darjeeling1"), name = "")
+
+pres_guardian
+```
+
+#### Both Newspapers Without Facet Wrap
+```{r, message = F, warning = F}
+pres_nyt_y <- pres_nyt +
+  theme(legend.position = "none") +
+  ylim(-0.5,14) 
+
+
+pres_guardian_y <- pres_guardian +
+  theme(legend.position="bottom") +
+  ylim(-0.5,14) 
+
+
+#combining into single plot
+pres_both_newspapers <- pres_nyt_y / pres_guardian_y
+
+#removing axis text from the first plot
+pres_both_newspapers[[1]] = pres_both_newspapers[[1]] + theme(axis.text.x = element_blank(),
+                                        axis.ticks.x = element_blank(),
+                                        axis.title.x = element_blank() )
+
+pres_both_newspapers
+```
+
+#### Both Newspapers With Facet Wrap
+```{r, message = F, warning = F}
+pres_nyt <- pres_nyt +
+  theme(legend.position = "none") +
+  ylim(-0.5,10) +
+  facet_wrap(~organisation, nrow = 1) + 
+  labs(title = "New York Times")
+  
+pres_guardian <- pres_guardian + 
+  theme(legend.position="none") + 
+  ylim(-0.5,10) +
+  facet_wrap(~organisation, nrow = 1) + 
+  labs(title = "The Guardian")
+
+
+#combining into single plot
+pres_both_newspapers <- pres_nyt / pres_guardian
+
+#removing axis text from the first plot
+pres_both_newspapers[[1]] = pres_both_newspapers[[1]] + theme(axis.text.x = element_blank(),
+                                        axis.ticks.x = element_blank(),
+                                        axis.title.x = element_blank() )
+
+pres_both_newspapers +
+  plot_annotation(title = "Timeline of Organisations",
+                  theme = theme(plot.title = element_text(size=18)))
+```
+
+
+
+
+

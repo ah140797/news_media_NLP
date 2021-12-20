@@ -1,0 +1,301 @@
+
+# Gender Dataset for further analysis
+
+<style>
+div.red { background-color:#e06666; border-radius: 5px; padding: 20px;}
+</style>
+<div class = "red">
+This Chapter is not used for the project, but it can be used for further analysis. 
+</div>
+
+
+Here i will make another dataset from `NYT_raw` which also contains the name of the authors and their gender. This dataset called `NYT_clean_author` is *not* used for analysis in this project, but is available for analysis in another project for another time maybe.
+
+It is necessary to make an additional dataset because not all articles has information about the authors. So `NYT_clean_author` will contain less articles than `NYT_clean` because articles with missing author information is dropped from the dataset. 
+
+## Dataset with authors
+
+First thing first, we start by loading the packages `tidyverse` [@tidyverse2019], `DT` [@R-DT] and `gender` [@R-gender].
+```{r}
+pacman::p_load(tidyverse, gender, DT)
+```
+
+We are going to make the author dataset `NYT_clean_author` from the dataset `NYT_raw`. It mostly follows the syntax from the package `tidyverse`.
+```{r cleaning the data with author, eval = F}
+#selecting coloumns to keep
+coloumns_to_select <- c("response.docs.headline.main", "response.docs.web_url",
+"response.docs.pub_date", "firstname", "lastname", "rank",)
+
+#creating the new dataframe
+NYT_aut <- NYT_raw %>% 
+  # Information about the name of the author is stored inside a dataframe in a column of the dataframe all_articles. I use the function "unnest" to unpack the dataframe into separate columns
+  unnest(cols = response.docs.byline.person) %>% 
+  
+  #selecting the defined columns
+  select(coloumns_to_select) %>% 
+  
+  #renaming columns to more humane names
+  rename(
+    "headline" = "response.docs.headline.main",
+    "url" = "response.docs.web_url",
+    "date" = "response.docs.pub_date"
+  ) %>% 
+  
+  #making a new coloumn with full name
+  mutate(
+    full_name = str_c(firstname, lastname, sep = "_")
+  ) %>% 
+  
+  #formating coloumns to the correct class
+  mutate(
+    date = as.Date(date),
+    firstname = as.factor(firstname),
+    lastname = as.factor(lastname),
+    rank = as.factor(rank),
+    full_name = as.factor(full_name)
+  ) %>% 
+  
+  #filtering rows where author is missing
+  filter(is.na(full_name) == F) %>% 
+  
+  #arranging by date so that the articles are in chronological order
+  arrange(by=date)
+
+
+#saving to a csv
+write_csv(NYT_aut, "data/new_york_times/data_additional/NYT_clean_author_cp18.csv")
+```
+
+
+Now lets inspect the cleaned dataframe. to see if it looks allright. Again, we use the function `datatable` from the package `DT`. The cleaned dataset contains the following columns. 
+
+* `headline` which is the title/headline of the article
+* `url` which is a url leading to the the article on the NYT webpage
+* `date` which is the publication date
+* `firstname` which is the first name of the author of the article
+* `lastname` which is the last name of the author of the article
+* `rank` which indicates the rank of the author.
+* `full_name` which is the full name of the author
+
+```{r inspecting the cleaned dataframe, message = F, warning = F}
+#reading the csv
+NYT_aut <- read_csv("data/author_dataset/NYT_author.csv")
+
+#making a nice dataframe that we can browse. Note that we remove abstract because there is too much text in it to show in a nice way.
+font.size <- "8pt"
+   DT::datatable(
+     NYT_aut,
+     rownames = FALSE,
+     filter = "top", 
+     options = list(
+       initComplete = htmlwidgets::JS(
+          "function(settings, json) {",
+          paste0("$(this.api().table().container()).css({'font-size': '", font.size, "'});"),
+          "}"),
+       pagelength = 3,
+       scrollX=T,
+       autoWidth = TRUE
+       ) 
+     )
+
+```
+
+This dataset `NYT_aut` has another structure than `NYT_clean`. In `NYT_aut` each row corresponds to an author instead of an article. This means that an article has *x* number of rows for *x* number of authors to that article. The column `rank` indicates the rank of each author, so that an article with 2 authors will have 2 rows with 1 and 2 as values in rank. This is because the function `unnest` makes x number of observations for x number of authors. You can see it for yourself in the table below. 
+```{r, warning = F}
+#dropping abstract and snippet since they make it hard to read the data
+NYT_aut %>%
+  #filtering rows where rank=1 is followed by rank=2 and where rank > 1
+  filter(lead(rank) == 2 | rank > 1) %>% 
+  #arranging by date
+  arrange(url) %>% 
+  #making a datatable again
+   DT::datatable(
+     rownames = FALSE,
+     filter = "top", 
+     options = list(
+       initComplete = htmlwidgets::JS(
+          "function(settings, json) {",
+          paste0("$(this.api().table().container()).css({'font-size': '", font.size, "'});"),
+          "}"),
+       pagelength = 3,
+       scrollX=T,
+       autoWidth = TRUE
+       ) 
+     )
+```
+
+
+## Comparing the datasets 
+Lastly, we are going to do a quick comparison of the datasets `NYT_clean` and `NYT_aut`. We start by loading ``
+```{r}
+df_NYT <- read_csv("data/new_york_times/data_additional/NYT_clean_cp2.csv") 
+```
+
+We start by comparing the number of articles in each dataset.
+```{r}
+#summing articles in df_nyt
+nrow(df_NYT)
+
+#summing articles in NYT_aut
+NYT_aut %>% 
+  filter(rank == 1) %>% 
+  nrow()
+
+```
+We see that `df_NYT` has 23.502 articles similar to `data_raw` and `NYT_aut` has 18.417 articles meaning that ~7000 articles has been dropped in the author dataset. This is the reason why we work with two datasets instead of one.
+
+In the next chunk we see of there are specific dates where articles from `NYT_aut` has been dropped. In other words if there is an unbalance in the dates of the author dataset. 
+```{r comparingdatasets, message = F, warning = F, figwidth = 12, fig.cap = "Number of articles published each day in the full dataset and in the dataset with authors."}
+#defining a dataset from df_NYT containing only dates and a indicator
+x1 <- df_NYT %>% 
+  select(date) %>% 
+  mutate(
+    Dataset = "Full Dataset"
+  )
+
+#defining a dataset from NYT_aut containing only dates and a indicator
+x2 <- NYT_aut %>% 
+  filter(rank == 1) %>% 
+  select(date) %>% 
+  mutate(
+    Dataset = "Dataset with authors"
+  )
+
+#contatinating the two datasets and setting data to factor
+xx <- as_tibble(rbind(x1, x2)) %>% 
+  mutate(
+    Dataset = as.factor(Dataset)
+  )
+
+#relevelling Dataset
+xx$Dataset <- relevel(xx$Dataset, "Full Dataset")
+
+#we sum together articles for each date and make a plot for each dataset
+xx %>%
+  group_by(date, Dataset) %>%
+  tally() %>% 
+  ggplot() +
+  aes(x=date, y=n, color = Dataset) +
+  geom_line() +
+  labs(y = "hits")
+
+```
+By eyeballing figure \@ref(fig:comparingdatasets) we see that `NYT_aut` is missing articles at a fairly evenly rate across all dates. In other words there are not specific periods where `NYT_aut` drops completely in articles. The ~7000 articles that are missing from `df_NYT` are spread across the whole period.
+
+```{r, include = F, eval = F}
+#relevelling Dataset
+xx$Dataset <- relevel(xx$Dataset, "Dataset with authors")
+
+#another plot sohwing the difference...
+xx %>%
+  group_by(date, Dataset) %>%
+  tally() %>% 
+  ggplot() +
+  aes(x=date, y=(n-lead(n))) +
+  geom_line() +
+  labs(y = "hits")
+```
+
+
+
+## Adding gender information to `NYT_aut`
+Next up we are going to add a gender to each author (M/F). I found a package 
+named `gender` which contains lists of male and female names. We can compare the
+names in this dictionary to the name of the authors in our dataset and assign
+each author a gender. First we reformat the dataframe a little bit. 
+```{r, eval = F}
+#reformatting the dataframe so it can enter the "gender_df" function below
+NYT_aut <- NYT_aut %>%  mutate(
+  firstname = as.character(firstname),
+  year = 2012
+)
+```
+
+Then we use the function `gender_df` to predict the gender of all the authors in our dataset. 
+```{r, warning = F, eval= F}
+#the function gender_df predicts gender using a coloumn of names from a dataframe
+gender_basic <- gender_df(
+  NYT_aut,
+  name_col = "firstname",
+  year_col = "year"
+)
+```
+
+
+Then we merge the dataframes `gender_basic` and `NYT_aut`. This is a little messy but it works. 
+```{r, eval = F}
+#renaming the column containing names so it can merge back with df
+gender_basic <- gender_basic %>%
+  rename(firstname = name)
+
+#joining the two dataframes "NYT_aut" and "gender_basic". NYT_aut contains duplicates of
+#author, since each author wrote several articles in the period where the data
+#was collected. We deal with these duplicates by adding a row number, so
+#each author gets two keys to join by. 
+NYT_aut <- left_join(NYT_aut %>% group_by(firstname) %>% mutate(id = row_number()),
+          gender_basic %>% group_by(firstname) %>% mutate(id = row_number()), 
+          by = c("firstname", "id"))
+```
+
+Finally we remove the extra columns created by the function `gender_df` which we dont need. 
+```{r, message = F, eval = F}
+#removing the extra columns created by the function "gender_df"
+coloumns_to_remove = c("year", "id", "proportion_male", "proportion_female", "year_min", "year_max")
+
+NYT_aut <- NYT_aut %>% 
+  select(-(coloumns_to_remove))
+```
+
+We save the dataframe
+```{r, eval = F}
+write_csv(NYT_aut, "data/new_york_times/data_additional/NYT_clean_author_cp18.csv")
+```
+
+
+Now we have successfully assigned a gender to each author. Lets inspect this. Let's see how many male, female and missing authors there are in the dataset.      
+```{r gendertable}
+#checking how many males, females and NA's there are
+NYT_aut %>%
+  #removing duplicates
+  distinct(full_name, .keep_all = TRUE) %>% 
+  group_by(gender) %>%
+  summarize(count = n()) %>% 
+  knitr::kable(caption = "The number of authors by gender",
+               col.names = c("Gender", "Count"))
+```
+
+Table \@ref(tab:gendertable) shows that there are 764 female authors and 1610 male authors, meaning that there are approximately 2 times male authors compared to female authors. This is quite the difference. 
+
+Moreoever, there are 370 NA's meaning that the names of 370 authors could not be found in the database from the package `gender`. What is the deal with these NA's? Lets see which author names cannot be assigned to a gender (M/F). 
+```{r}
+NYT_aut %>%
+  distinct(full_name, .keep_all = TRUE) %>% 
+  filter(is.na(gender)) %>% 
+  select(firstname, full_name) %>% 
+  head(15) %>% 
+  knitr::kable(caption = "The firstname and full names of authors where the gender-package failed to assign a gender",
+               col.names = c("First name", "Full Name"))
+  
+```
+Here we can see the firstname of authors which the gender-package failed to
+recognize. These seem like the names of immigrants and some weird names. 
+
+
+
+
+Some more gender stuff over time
+```{r}
+NYT_aut %>% 
+  group_by(date, gender) %>% 
+  tally() %>%
+  ggplot() + 
+  aes(x=date, y=n, color = gender) + 
+  geom_line() +
+  labs(y = "hits") + 
+  facet_wrap(~gender, nrow = 3)
+
+```
+
+
+
+

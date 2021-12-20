@@ -1,0 +1,331 @@
+# Topic Model Interpretation and Vizualisation
+
+
+Here we load packages `tidyverse` [@tidyverse2019], `wesanderson` [@R-wesanderson], `patchwork` [@R-patchwork] and `RColorBrewer` [@R-RColorBrewer].
+```{r}
+pacman::p_load(tidyverse, wesanderson, RColorBrewer, patchwork)
+```
+
+We also load the data.
+```{r, message = F}
+#NYT
+df1 <- read_csv("data/new_york_times/NYT_clean_1.csv")
+df2 <- read_csv("data/new_york_times/NYT_clean_2.csv")
+df3 <- read_csv("data/new_york_times/NYT_clean_3.csv")
+
+df <- rbind(df1, df2, df3)
+df_NYT <- as_tibble(df) %>% 
+    mutate(newspaper = "New York Times")
+
+#The Guardian
+df_guardian <- read_csv("data/guardian/guardian_clean.csv") %>% 
+    mutate(
+        newspaper = "The Guardian"
+    )
+
+#combined
+df_all <- rbind(df_NYT, df_guardian)
+df_all <- as_tibble(df_all)
+```
+
+
+## Plotting topic prevalence
+```{r}
+all_nyt <- df_all %>% 
+  filter(newspaper == "New York Times") %>% 
+  group_by(dominant_topic) %>% 
+  tally() %>% 
+  mutate(count_topic = n/21109) %>% 
+  arrange(desc(count_topic)) %>% 
+  mutate(
+    dominant_topic = as.factor(dominant_topic),
+    dominant_topic_name = paste("Topic", as.character(dominant_topic)),
+  ) %>%
+  ggplot() + 
+  aes(x=reorder(dominant_topic_name, count_topic), y=count_topic) + 
+  geom_bar(stat = "identity", fill = RColorBrewer::brewer.pal(7, "Set2")) + 
+  coord_flip() +
+  labs(x= "Topic", y="Proportion of Articles", title = "New York Times") + 
+  theme_minimal() + 
+  ylim(0,0.4)
+
+
+all_guardian <- df_all %>% 
+  filter(newspaper == "The Guardian") %>% 
+  group_by(dominant_topic) %>% 
+  tally() %>% 
+  mutate(count_topic = n/9609) %>%  
+  arrange(desc(count_topic)) %>% 
+    mutate(
+    dominant_topic = as.factor(dominant_topic),
+    dominant_topic_name = paste("Topic", as.character(dominant_topic)),
+  ) %>%
+  ggplot() + 
+  aes(x=reorder(dominant_topic_name, count_topic), y=count_topic) + 
+  geom_bar(stat = "identity", fill = RColorBrewer::brewer.pal(7, "Set1")) + 
+  coord_flip() +
+  labs(x= "Topic", y="Proportion of Articles", title = "The Guardian") + 
+  theme_minimal() + 
+  ylim(0,0.4)
+
+all_nyt/all_guardian +
+  plot_annotation(title = "Proportion of Articles for Each Topic",
+                  theme = theme(plot.title = element_text(size=18)))
+
+```
+
+## Plotting topic prevalence over time
+
+
+### Data Wrangling
+
+Some wrangling is needed to make the plots. Here we add one new column to the dataset called `month` indicating the month. We also add +1 to all values in `dominant_topic` because they were 0-indexed from Python. 
+```{r}
+df_all <- df_all %>% 
+  mutate(month = lubridate::floor_date(date, "month"),
+         month = as.Date(month),
+         dominant_topic = dominant_topic + 1)
+```
+
+Then we make a new dataframe `df_all_month` where we group articles by `newspaper`, `month` and `dominant_topic`. We then count the number of articles per newspaper per month per topic. 
+```{r}
+df_all_month <- df_all %>% 
+  group_by(newspaper, month, dominant_topic) %>% 
+  tally() %>% 
+  rename(count_topics = n)
+```
+
+We make another dataframe `df_all_month_1` where we group articles by `newspaper` and `month`. We then count the number of articles per newspaper per month. 
+```{r}
+df_all_month_1 <- df_all %>% 
+  group_by(newspaper, month) %>% 
+  tally() %>% 
+  rename(count_total = n)
+```
+
+We merge the two dataframes together and add a new column `topic_contribution_proportion`. This column indicates the proportion of articles that belongs to a given topic in a given month for a given newspaper. 
+```{r}
+df_all_month_2 <- left_join(df_all_month, df_all_month_1)
+
+df_all_month_2 <- df_all_month_2 %>% 
+  mutate(topic_proportion = count_topics/count_total)
+```
+
+### Plots
+
+
+```{r, message = F, fig.height=8}
+q <- df_all_month_2 %>% 
+  filter(newspaper == "New York Times") %>% 
+  filter(month > as.Date("1999-01-01")) %>% 
+  mutate(
+    dominant_topic = as.factor(dominant_topic),
+    dominant_topic_name = paste("Topic", as.character(dominant_topic)),
+  ) %>% 
+  ggplot() + 
+  aes(x=month, y = topic_proportion, color = dominant_topic_name) +
+  geom_smooth(aes(fill = dominant_topic), method = "gam", size = 1.2) +
+  geom_point(aes(fill = dominant_topic), size = 0.3) + 
+  ylim(0, 1) +
+  scale_x_date(limits = as.Date(c("1996-01-01", "2021-11-01"))) + 
+  labs(x="Date", y="Proportion of Articles", title = "Topic Prevalence for The Guardian") +
+  theme_minimal() +
+  scale_fill_manual(values = RColorBrewer::brewer.pal(7, "Set2"), name = "") + 
+  facet_wrap(~dominant_topic_name, nrow = 7) +
+  theme(legend.position = "none")
+
+q 
+```
+
+
+```{r, message = F, warning = F, fig.height=8}
+q <- df_all_month_2 %>% 
+  filter(newspaper == "The Guardian") %>% 
+  filter(month > as.Date("1999-01-01")) %>%
+  mutate(
+    dominant_topic = as.factor(dominant_topic),
+    dominant_topic_name = paste("Topic", as.character(dominant_topic))
+  ) %>% 
+  ggplot() + 
+  aes(x=month, color = dominant_topic_name) +
+  geom_smooth(aes(y=topic_proportion, fill = dominant_topic), method = "gam", size = 1.2) +
+  geom_point(aes(y=topic_proportion, fill = dominant_topic), size = 0.3) + 
+  ylim(0, 1) +
+  scale_x_date(limits = as.Date(c("1996-01-01", "2021-11-01"))) + 
+  labs(x="Date", y="Proportion of Articles", title = "Topic Prevalence for The Guardian") +
+  theme_minimal() +
+  scale_fill_manual(values = RColorBrewer::brewer.pal(7, "Set2"), name = "") + 
+  facet_wrap(~dominant_topic_name, nrow = 7) +
+  theme(legend.position = "none")
+
+q  
+```
+
+## Does topics differ in polarity and subjectivity?
+
+### Polarity
+
+```{r}
+all_nyt <- df_all %>% 
+  filter(newspaper == "New York Times") %>% 
+  group_by(dominant_topic) %>% 
+  summarize(mean_polarity = mean(polarity)) %>% 
+  arrange(desc(mean_polarity)) %>% 
+  mutate(
+    dominant_topic = as.factor(dominant_topic),
+    dominant_topic_name = paste("Topic", as.character(dominant_topic)),
+  ) %>%
+  ggplot() + 
+  aes(x=reorder(dominant_topic_name, mean_polarity), y=mean_polarity) + 
+  geom_bar(stat = "identity", fill = RColorBrewer::brewer.pal(7, "Set2")) + 
+  coord_flip() +
+  labs(x= "Topic", y="Mean polarity", title = "New York Times") + 
+  theme_minimal() + 
+  ylim(-0.015,0.07)
+
+
+all_guardian <- df_all %>% 
+  filter(newspaper == "The Guardian") %>% 
+  group_by(dominant_topic) %>% 
+  summarize(mean_polarity = mean(polarity)) %>% 
+  arrange(desc(mean_polarity)) %>% 
+  mutate(
+    dominant_topic = as.factor(dominant_topic),
+    dominant_topic_name = paste("Topic", as.character(dominant_topic)),
+  ) %>%
+  ggplot() + 
+  aes(x=reorder(dominant_topic_name, mean_polarity), y=mean_polarity) + 
+  geom_bar(stat = "identity", fill = RColorBrewer::brewer.pal(7, "Set1")) + 
+  coord_flip() +
+  labs(x= "Topic", y="Mean polarity", title = "The Guardian") + 
+  theme_minimal() + 
+  ylim(-0.015,0.07)
+
+
+all_nyt/all_guardian +
+plot_annotation(title = "Mean Polarity for Each Topic",
+                theme = theme(plot.title = element_text(size=18)))
+```
+
+```{r, warning = F, fig.height = 8}
+bl <- df_all %>% 
+  filter(newspaper == "New York Times") %>% 
+  mutate(
+    dominant_topic = as.factor(dominant_topic), 
+    dominant_topic_name = paste("Topic", as.character(dominant_topic))
+  ) %>% 
+  ggplot() +
+  aes(x=polarity, fill = dominant_topic_name) + 
+  geom_density(alpha = 0.5) +
+  theme_minimal() + 
+  scale_fill_manual(values = RColorBrewer::brewer.pal(7, "Set2"), name = "") + 
+  labs(x="Polarity", y="Density", title="New York Times") +
+  facet_wrap(~dominant_topic_name, nrow=7) + 
+  xlim(-0.3,0.3) + 
+  theme(legend.position = "bottom")
+
+bll <- df_all %>% 
+  filter(newspaper == "The Guardian") %>% 
+  mutate(
+    dominant_topic = as.factor(dominant_topic), 
+    dominant_topic_name = paste("Topic", as.character(dominant_topic))
+  ) %>% 
+  ggplot() +
+  aes(x=polarity, fill = dominant_topic_name) + 
+  geom_density(alpha = 0.5) +
+  theme_minimal() + 
+  scale_fill_manual(values = RColorBrewer::brewer.pal(7, "Set1"), name = "") + 
+  labs(x="Polarity", y="Density", title="The Guardian") +
+  facet_wrap(~dominant_topic_name, nrow=7) + 
+  xlim(-0.3,0.3) + 
+  theme(legend.position = "bottom")
+
+bl + bll +
+  plot_annotation(title = "Density plots of Polarity for All Topics",
+                  theme = theme(plot.title = element_text(size=18)))
+```
+
+
+### Subjectivity
+
+```{r}
+all_nyt <- df_all %>% 
+  filter(newspaper == "New York Times") %>% 
+  group_by(dominant_topic) %>% 
+  summarize(mean_subjectivity = mean(subjectivity)) %>% 
+  arrange(desc(mean_subjectivity)) %>% 
+  mutate(
+    dominant_topic = as.factor(dominant_topic),
+    dominant_topic_name = paste("Topic", as.character(dominant_topic)),
+  ) %>%
+  ggplot() + 
+  aes(x=reorder(dominant_topic_name, mean_subjectivity), y=mean_subjectivity) + 
+  geom_bar(stat = "identity", fill = RColorBrewer::brewer.pal(7, "Set2")) + 
+  coord_flip() +
+  labs(x= "Topic", y="Mean polarity", title = "New York Times") + 
+  theme_minimal() +
+  ylim(0,0.5)
+
+
+all_guardian <- df_all %>% 
+  filter(newspaper == "The Guardian") %>% 
+  group_by(dominant_topic) %>% 
+  summarize(mean_subjectivity = mean(subjectivity)) %>% 
+  arrange(desc(mean_subjectivity)) %>% 
+  mutate(
+    dominant_topic = as.factor(dominant_topic),
+    dominant_topic_name = paste("Topic", as.character(dominant_topic)),
+  ) %>%
+  ggplot() + 
+  aes(x=reorder(dominant_topic_name, mean_subjectivity), y=mean_subjectivity) + 
+  geom_bar(stat = "identity", fill = RColorBrewer::brewer.pal(7, "Set1")) + 
+  coord_flip() +
+  labs(x= "Topic", y="Mean polarity", title = "The Guardian") + 
+  theme_minimal() +
+  ylim(0,0.5)
+
+
+all_nyt/all_guardian +
+plot_annotation(title = "Mean subjectivity for Each Topic",
+                theme = theme(plot.title = element_text(size=18)))
+```
+
+```{r, warning = F, fig.height = 8}
+bl <- df_all %>% 
+  filter(newspaper == "New York Times") %>% 
+  mutate(
+    dominant_topic = as.factor(dominant_topic), 
+    dominant_topic_name = paste("Topic", as.character(dominant_topic))
+  ) %>% 
+  ggplot() +
+  aes(x=subjectivity, fill = dominant_topic_name) + 
+  geom_density(alpha = 0.5) +
+  theme_minimal() + 
+  scale_fill_manual(values = RColorBrewer::brewer.pal(7, "Set2"), name = "") + 
+  labs(x="Polarity", y="Density", title="New York Times") +
+  facet_wrap(~dominant_topic_name, nrow=7) + 
+  xlim(0,0.6) + 
+  theme(legend.position = "bottom")
+
+bll <- df_all %>% 
+  filter(newspaper == "The Guardian") %>% 
+  mutate(
+    dominant_topic = as.factor(dominant_topic), 
+    dominant_topic_name = paste("Topic", as.character(dominant_topic))
+  ) %>% 
+  ggplot() +
+  aes(x=subjectivity, fill = dominant_topic_name) + 
+  geom_density(alpha = 0.5) +
+  theme_minimal() + 
+  scale_fill_manual(values = RColorBrewer::brewer.pal(7, "Set1"), name = "") + 
+  labs(x="Subjectivity", y="Density", title="The Guardian") +
+  facet_wrap(~dominant_topic_name, nrow=7) + 
+  xlim(0,0.6) + 
+  theme(legend.position = "bottom")
+
+bl + bll +
+  plot_annotation(title = "Density plots of Subjectivity for All Topics",
+                  theme = theme(plot.title = element_text(size=18)))
+```
+
+

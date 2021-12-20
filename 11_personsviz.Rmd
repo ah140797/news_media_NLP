@@ -1,0 +1,1162 @@
+# Persons Vizualisation
+
+In this chapter I will make visualizations of key persons to see in which periods of time that these key persons were relevant for the Taliban-conflict. I also compare the two newspapers to see if they focus more or less on these key persons. 
+
+The code in this chapter is mainly for making plots. The commenting will be sparse as it would be too tidious to comment everything. 
+
+
+First thing first, we start by loading the package `tidyverse` [@tidyverse2019], `patchwork` [@R-patchwork] and `wesanderson` [@R-wesanderson].
+```{r}
+pacman::p_load(tidyverse, patchwork, wesanderson)
+```
+
+Then we load the data containing persons.
+```{r, message=F}
+person_nyt <- read_csv("data/new_york_times/data_NER/person.csv")
+person_guardian <- read_csv("data/guardian/data_NER/person.csv")
+```
+
+We do a quick inspection of the most important persons.
+```{r, results = F}
+z <- person_nyt %>%
+  group_by(person) %>% 
+  summarize(n = sum(count)) %>% 
+  arrange(desc(n))
+
+g <- person_guardian %>%
+  group_by(person) %>% 
+  summarize(n = sum(count)) %>% 
+  arrange(desc(n))
+```
+
+The following key persons will be plotted:
+
+* **United States presidents**
+   * *George W. Bush*
+   * *Barack Obama*
+   * *Donald Trump*
+* **British Prime Minister**
+   * *Tony Blair*
+   * *Gordon Brown*
+   * *David Cameron*
+   * *Boris Johnson*
+* **Afghanistan presidents**
+   * *Hamid Karzai*
+   * *Ashraf Ghani*
+* **Other Persons**
+   * *Osama bin Laden*
+   * *Saddan Hussein*
+   
+
+<style>
+div.red { background-color:#e06666; border-radius: 5px; padding: 20px;}
+</style>
+<div class = "red">
+Note that Theresa May, British prime minister between 2016-06-13 and 2019-07-24, was not picked up by spaCy and she will therefore not be plotted. 
+</div>
+
+
+## Standardize to hits pr. article and grouping by month
+
+In order to compare the two newspapers we need to standardize the count according to the number of articles pr. month. We will make a new variable called `penalized_count` for both `person_nyt` and `person_guardian`.  
+
+We start by adding a new column `month` to `person_nyt` and `person_guardian`.
+```{r}
+person_nyt <- person_nyt %>% 
+  mutate(month = lubridate::floor_date(date, "month"),
+         month = as.Date(month))
+
+person_guardian <- person_guardian %>% 
+  mutate(month = lubridate::floor_date(date, "month"),
+         month = as.Date(month))
+```
+
+Then we load the dataset containing articles for both newspapers as `df_nyt` and `df_guardian`. 
+```{r, message = F}
+df1 <- read_csv("data/new_york_times/NYT_clean_1.csv")
+df2 <- read_csv("data/new_york_times/NYT_clean_2.csv")
+df3 <- read_csv("data/new_york_times/NYT_clean_3.csv")
+
+df <- rbind(df1, df2, df3)
+df_nyt <- as_tibble(df)
+
+df_guardian <- read_csv("data/guardian/guardian_clean.csv")
+```
+
+Here we add a new column to each dataset called `month` .
+```{r}
+df_nyt <- df_nyt %>% 
+  mutate(month = lubridate::floor_date(date, "month"),
+         month = as.Date(month))
+
+df_guardian <- df_guardian %>% 
+  mutate(month = lubridate::floor_date(date, "month"),
+         month = as.Date(month))
+```
+
+Then we add a new column `sum_articles_month` which is the sum of articles for a given month. 
+```{r}
+df_nyt <- df_nyt %>% group_by(month) %>% 
+  tally() %>% 
+  rename(sum_articles_month = n)
+
+df_guardian <- df_guardian %>% group_by(month) %>% 
+  tally() %>% 
+  rename(sum_articles_month = n)
+```
+
+For the person datasets, we group by person and month and summarize the count. So we get a score for each person for each month.  
+```{r, message = F, warning = F}
+person_nyt <- person_nyt %>% 
+  group_by(person, month) %>% 
+  summarise(count = sum(count))
+
+person_guardian <- person_guardian %>% 
+  group_by(person, month) %>% 
+  summarise(count = sum(count))
+```
+
+Then we merge `df_nyt` with `person_nyt` so that we now have a column in `person_nyt` called `sum_articles_month` which indicates the total number of articles published in the given month. I do the same for `df_guardian` and `person_guardian`. 
+```{r}
+person_nyt <- left_join(person_nyt, df_nyt, by = "month")
+person_guardian <- left_join(person_guardian, df_guardian, by = "month")
+```
+
+Then we make the columns `penalized_count` and `penalized_count_round` which indicates the number of hits for a given person pr. month pr. total articles in that month.We also make a column `newspaper` to indicate the newspaper. Some months have very few articles, so we also filter out out these, because they can make unreliable values of `penalized_count`.  
+```{r}
+person_nyt <- person_nyt %>% 
+  mutate(
+    penalized_count = count/sum_articles_month,
+    penalized_count_round = round(penalized_count, 1),
+    newspaper = "New York Times"
+  ) %>% 
+  filter(sum_articles_month > 15)
+
+person_guardian <- person_guardian %>% 
+  mutate(
+    penalized_count = count/sum_articles_month,
+    penalized_count_round = round(penalized_count, 1),
+    newspaper = "The Guardian"
+  ) %>% 
+  filter(sum_articles_month > 15)
+```
+
+Then i bind the datasets together so we can plot them in the same plot and select the columns needed.
+```{r}
+df_person <- rbind(person_nyt, person_guardian)
+df_person <- as_tibble(df_person) 
+```
+
+Now we have a dataset that is ready for plots. 
+
+## Color Palettes
+
+Here I quickly define some color palettes with colors that i like. These palettes will be used for different plots. The same colors will be used consistently throughout the notebook.
+```{r}
+color_palette_newspaper <- c(wes_palette("Chevalier1")[1], wes_palette("Darjeeling2")[2])
+color_palette_afghan_pres <- c(wes_palette("Moonrise1")[2], wes_palette("Moonrise3")[3])
+color_palette_terrorists <- c(wes_palette("Royal1")[4], wes_palette("Royal2")[5])
+```
+
+
+## United States Presidents
+
+### Summary plot
+```{r}
+summary_nyt <- df_person %>% 
+  filter(newspaper == "New York Times") %>% 
+  filter(person %in% c("Bush", "Obama", "Trump")) %>% 
+  group_by(person) %>% 
+  summarise(count = sum(count)) %>%  
+  mutate(hits_pr_article = count/21109) %>% 
+  arrange(desc(hits_pr_article)) %>% 
+  ggplot() + 
+  aes(x=reorder(person, hits_pr_article), y=hits_pr_article) +
+  geom_bar(stat = "identity", fill = color_palette_newspaper[1]) + 
+  coord_flip() + 
+  labs(x= "President", y="Hits per Article", title = "New York Times") + 
+  theme_minimal() + 
+  ylim(0,1)
+
+summary_guardian <- df_person %>% 
+  filter(newspaper == "The Guardian") %>% 
+  filter(person %in% c("Bush", "Obama", "Trump")) %>% 
+  group_by(person) %>% 
+  summarise(count = sum(count)) %>%  
+  mutate(hits_pr_article = count/9609) %>% 
+  arrange(desc(hits_pr_article)) %>% 
+  ggplot() + 
+  aes(x=reorder(person, hits_pr_article), y=hits_pr_article) +
+  geom_bar(stat = "identity", fill = color_palette_newspaper[2]) + 
+  coord_flip() + 
+  labs(x= "President", y="Hits per Article", title = "The Guardian") + 
+  theme_minimal() + 
+  ylim(0,1)
+
+u <- summary_nyt / summary_guardian +
+  plot_annotation(title = "U.S. Presidents",
+                  theme = theme(plot.title = element_text(size=18)))
+
+
+```
+
+
+### George W. Bush
+```{r, message = F}
+bush <- df_person %>% 
+  filter(person == "Bush") %>% 
+  ggplot() +
+  aes(x=month, y=penalized_count, color = newspaper) + 
+  geom_point(size = 0.9) +
+  geom_smooth(alpha=0.2, size = 1.2, method = "gam") +
+  labs(y="Hits per Article", x = "Date", title = "George W. Bush") +
+  facet_wrap(~newspaper, nrow = 2) +
+  scale_x_date(limits = as.Date(c("1998-01-01", "2021-11-01"))) +
+  theme_minimal() +
+  scale_color_manual(values = color_palette_newspaper, name = "") +
+  theme(legend.position="none") +
+  geom_vline(xintercept = as.numeric(c(as.Date("2001-01-20"), as.Date("2009-01-20"))),
+                          linetype = c("solid", "longdash", "solid", "longdash"))
+  
+
+bush
+```
+
+### Barack Obama
+
+```{r, message = F}
+obama <- df_person %>% 
+  filter(person == "Obama") %>% 
+  ggplot() +
+  aes(x=month, y=penalized_count, color = newspaper) + 
+  geom_point(size = 0.9) +
+  geom_smooth(alpha=0.2, size = 1.2, method = "gam") +
+  labs(y="Hits per Article", x = "Date", title = "Barack Obama") +
+  facet_wrap(~newspaper, nrow = 2) +
+  scale_x_date(limits = as.Date(c("2004-01-01", "2021-11-01"))) +
+  theme_minimal() +
+  scale_color_manual(values = color_palette_newspaper, name = "") +
+  theme(legend.position="none") +
+  geom_vline(xintercept = as.numeric(c(as.Date("2009-01-20"), as.Date("2017-01-20"))),
+                          linetype = c("solid", "longdash", "solid", "longdash"))
+
+obama
+```
+
+### Donald Trump
+
+```{r, message = F}
+trump <- df_person %>% 
+  filter(person == "Trump") %>% 
+  ggplot() +
+  aes(x=month, y=penalized_count, color = newspaper) + 
+  geom_point(size = 0.9) +
+  geom_smooth(alpha=0.2, size = 1.2, method = "gam") +
+  labs(y="Hits per Article", x = "Date", title = "Donald Trump") +
+  facet_wrap(~newspaper, nrow = 2) +
+  scale_x_date(limits = as.Date(c("2004-01-01", "2021-11-01"))) +
+  theme_minimal() +
+  scale_color_manual(values = color_palette_newspaper, name = "") +
+  theme(legend.position="none") +
+  geom_vline(xintercept = as.numeric(c(as.Date("2017-01-20"), as.Date("2021-01-20"))),
+                          linetype = c("solid", "longdash", "solid", "longdash"))
+
+trump
+```
+
+### Combined Plots
+
+#### New York Times
+
+United states president plot for New York Times
+```{r, message = F, fig.dim=c(10,5)}
+bush <- df_person %>% 
+  filter(person == "Bush") %>%
+  filter(newspaper == "New York Times") %>% 
+  mutate(
+    president = "George W. Bush"
+  ) 
+
+obama <- df_person %>% 
+  filter(person == "Obama") %>%
+  filter(newspaper == "New York Times") %>% 
+  mutate(
+    president = "Barack Obama"
+  )
+
+trump <- df_person %>% 
+  filter(person == "Trump") %>%
+  filter(newspaper == "New York Times") %>% 
+  mutate(
+    president = "Donald Trump"
+  )
+
+pres <- rbind(bush, obama, trump)
+pres <- as_tibble(pres) %>% 
+  mutate(president = as.factor(president))
+
+pres <- pres %>% 
+  mutate(president = fct_relevel(president, c("George W. Bush", "Barack Obama")))
+
+pres_nyt <- pres %>% 
+  ggplot() + 
+  aes(x=month, y=penalized_count, color = president) + 
+  geom_point(size = 0.9) +
+  geom_smooth(method="loess", se = F, size = 1.2) +
+  labs(y="Hits per Article", x = "Date", title = "U.S Presidents Mentioned in New York Times") +
+  scale_x_date(limits = as.Date(c("1998-01-01", "2021-11-01"))) +
+  theme_minimal() +
+  scale_color_manual(values = wes_palette(name = "FantasticFox1"), name = "")
+
+pres_nyt
+```
+
+#### The Guardian
+
+United States president plot for the Guardian.
+```{r, message = F, fig.dim=c(10,5)}
+bush <- df_person %>% 
+  filter(person == "Bush") %>%
+  filter(newspaper == "The Guardian") %>% 
+  mutate(
+    president = "George W. Bush"
+  ) 
+
+obama <- df_person %>% 
+  filter(person == "Obama") %>%
+  filter(newspaper == "The Guardian") %>% 
+  mutate(
+    president = "Barack Obama"
+  )
+
+trump <- df_person %>% 
+  filter(person == "Trump") %>%
+  filter(newspaper == "The Guardian") %>% 
+  mutate(
+    president = "Donald Trump"
+  )
+
+pres <- rbind(bush, obama, trump)
+pres <- as_tibble(pres) %>% 
+  mutate(president = as.factor(president))
+
+pres <- pres %>% 
+  mutate(president = fct_relevel(president, c("George W. Bush", "Barack Obama")))
+
+pres_guardian <- pres %>% 
+  ggplot() + 
+  aes(x=month, y=penalized_count, color = president) + 
+  geom_point(size = 0.9) +
+  geom_smooth(method="loess", se = F, size = 1.2) +
+  labs(y="Hits per Article", x = "Date", title = "U.S Presidents Mentioned in The Guardian") +
+  scale_x_date(limits = as.Date(c("1998-01-01", "2021-11-01"))) +
+  theme_minimal() +
+  scale_color_manual(values = wes_palette(name = "FantasticFox1"), name = "") 
+
+pres_guardian
+```
+
+#### Both Newspapers Without Facet Wrap
+```{r, message = F, warning = F}
+pres_nyt_y <- pres_nyt +
+  theme(legend.position = "none") +
+  ylim(-0.5,7) +
+  #scale_x_date(limits = as.Date(c("1998-01-01", "2021-11-01"))) +
+  geom_vline(xintercept = as.numeric(c(as.Date("2001-01-20"), as.Date("2009-01-20"), as.Date("2017-01-20"))),
+                          linetype = c("solid", "solid", "solid"),
+                          color = c(wes_palette("FantasticFox1")[1], wes_palette("FantasticFox1")[2], wes_palette("FantasticFox1")[3])) 
+
+
+pres_guardian_y <- pres_guardian +
+  theme(legend.position="bottom") +
+  ylim(-0.5,7) +
+  #scale_x_date(limits = as.Date(c("1998-01-01", "2021-11-01"))) +
+  geom_vline(xintercept = as.numeric(c(as.Date("2001-01-20"), as.Date("2009-01-20"), as.Date("2017-01-20"))),
+                          linetype = c("solid", "solid", "solid"),
+                          color = c(wes_palette("FantasticFox1")[1], wes_palette("FantasticFox1")[2], wes_palette("FantasticFox1")[3])) 
+
+
+#combining into single plot
+pres_both_newspapers <- pres_nyt_y / pres_guardian_y
+
+#removing axis text from the first plot
+pres_both_newspapers[[1]] = pres_both_newspapers[[1]] + theme(axis.text.x = element_blank(),
+                                        axis.ticks.x = element_blank(),
+                                        axis.title.x = element_blank() )
+
+pres_both_newspapers
+```
+
+#### Both Newspapers With Facet Wrap
+```{r, message = F, warning = F}
+pres_nyt <- pres_nyt +
+  theme(legend.position = "none") +
+  ylim(-0.5,3) +
+  #scale_x_date(limits = as.Date(c("1998-01-01", "2021-11-01"))) +
+  facet_wrap(~president, nrow = 1) + 
+  labs(title = "New York Times")
+  
+pres_guardian <- pres_guardian + 
+  theme(legend.position="none") + 
+  ylim(-0.5,3) +
+  scale_x_date(limits = as.Date(c("1996-01-01", "2021-11-01")), breaks = "5 years", date_labels = "%Y") +
+  facet_wrap(~president, nrow = 1) + 
+  labs(title = "The Guardian")
+
+
+#combining into single plot
+pres_both_newspapers <- pres_nyt / pres_guardian
+
+#removing axis text from the first plot
+pres_both_newspapers[[1]] = pres_both_newspapers[[1]] + theme(axis.text.x = element_blank(),
+                                        axis.ticks.x = element_blank(),
+                                        axis.title.x = element_blank() )
+
+pres_both_newspapers +
+  plot_annotation(title = "Timeline of U.S. Presidents",
+                  theme = theme(plot.title = element_text(size=18)))
+```
+
+## British Prime Ministers
+
+<style>
+div.red { background-color:#e06666; border-radius: 5px; padding: 20px;}
+</style>
+<div class = "red">
+Note that Theresa May, British prime minister between 2016-06-13 and 2019-07-24, was not picked up by spaCy and she will therefore not be plotted. 
+</div>
+
+### Summary plot
+```{r}
+summary_nyt <- df_person %>% 
+  filter(newspaper == "New York Times") %>% 
+  filter(person %in% c("Blair", "Brown", "Cameron", "Boris")) %>% 
+  group_by(person) %>% 
+  summarise(count = sum(count)) %>%  
+  mutate(hits_pr_article = count/21109) %>% 
+  arrange(desc(hits_pr_article)) %>% 
+  ggplot() + 
+  aes(x=reorder(person, hits_pr_article), y=hits_pr_article) +
+  geom_bar(stat = "identity", fill = color_palette_newspaper[1]) + 
+  coord_flip() + 
+  labs(x= "Prime Minister", y="Hits per Article", title = "New York Times") + 
+  theme_minimal() + 
+  ylim(0,0.35)
+
+summary_guardian <- df_person %>% 
+  filter(newspaper == "The Guardian") %>% 
+  filter(person %in% c("Blair", "Brown", "Cameron", "Boris")) %>% 
+  group_by(person) %>% 
+  summarise(count = sum(count)) %>%  
+  mutate(hits_pr_article = count/9609) %>% 
+  arrange(desc(hits_pr_article)) %>% 
+  ggplot() + 
+  aes(x=reorder(person, hits_pr_article), y=hits_pr_article) +
+  geom_bar(stat = "identity", fill = color_palette_newspaper[2]) + 
+  coord_flip() + 
+  labs(x= "Prime Minister", y="Hits per Article", title = "The Guardian") + 
+  theme_minimal() + 
+  ylim(0,0.35)
+
+b <- summary_nyt / summary_guardian +
+  plot_annotation(title = "British Prime Ministers",
+                  theme = theme(plot.title = element_text(size=18)))
+
+b
+```
+
+### Tony Blair
+
+```{r, message = F, warning = F}
+blair <- df_person %>% 
+  filter(person == "Blair") %>% 
+  ggplot() +
+  aes(x=month, y=penalized_count, color = newspaper) + 
+  geom_point(size = 0.9) +
+  geom_smooth(alpha=0.2, size = 1.2, method = "gam") +
+  labs(y="Hits per Article", x = "Date", title = "Tony Blair") +
+  facet_wrap(~newspaper, nrow = 2) +
+  theme_minimal() +
+  scale_color_manual(values = color_palette_newspaper, name = "") +
+  theme(legend.position="none") +
+  geom_vline(xintercept = as.numeric(c(as.Date("1997-05-02"), as.Date("2007-06-27"))),
+                          linetype = c("solid", "longdash", "solid", "longdash")) +
+  scale_x_date(limits = as.Date(c("1997-01-01", "2021-11-01"))) 
+
+blair
+```
+### Gordon Brown
+
+```{r, message = F, warning = F}
+brown <- df_person %>% 
+  filter(person == "Brown") %>% 
+  ggplot() +
+  aes(x=month, y=penalized_count, color = newspaper) + 
+  geom_point(size = 0.9) +
+  geom_smooth(alpha=0.2, size = 1.2, method = "gam") +
+  labs(y="Hits per Article", x = "Date", title = "Gordon Brown") +
+  facet_wrap(~newspaper, nrow = 2) +
+  scale_x_date(date_breaks = "3 year") +
+  theme_minimal() +
+  scale_color_manual(values = color_palette_newspaper, name = "") +
+  theme(legend.position="none") +
+  geom_vline(xintercept = as.numeric(c(as.Date("2007-06-27"), as.Date("2010-05-11"))),
+                          linetype = c("solid", "longdash", "solid", "longdash")) +
+  scale_x_date(limits = as.Date(c("1997-01-01", "2021-11-01"))) 
+
+brown
+```
+
+### David Cameron
+
+```{r, message = F, warning = F}
+cameron <- df_person %>% 
+  filter(person == "Cameron") %>% 
+  ggplot() +
+  aes(x=month, y=penalized_count, color = newspaper) + 
+  geom_point(size = 0.9) +
+  geom_smooth(alpha=0.2, size = 1.2, method = "gam") +
+  labs(y="Hits per Article", x = "Date", title = "David Cameron") +
+  facet_wrap(~newspaper, nrow = 2) +
+  scale_x_date(date_breaks = "3 year") +
+  theme_minimal() +
+  scale_color_manual(values = color_palette_newspaper, name = "") +
+  theme(legend.position="none") +
+  geom_vline(xintercept = as.numeric(c(as.Date("2010-05-11"), as.Date("2016-06-13"))),
+                          linetype = c("solid", "longdash", "solid", "longdash")) +
+  scale_x_date(limits = as.Date(c("2000-01-01", "2021-11-01"))) 
+
+cameron
+```
+
+### Boris Johnson
+
+```{r, message = F, warning = F}
+boris <- df_person %>% 
+  filter(person == "Boris") %>% 
+  ggplot() +
+  aes(x=month, y=penalized_count, color = newspaper) + 
+  geom_point(size = 0.9) +
+  geom_smooth(alpha=0.2, size = 1.2, method = "gam") +
+  labs(y="Hits per Article", x = "Date", title = "Boris Johnson") +
+  facet_wrap(~newspaper, nrow = 2) +
+  scale_x_date(date_breaks = "3 year") +
+  theme_minimal() +
+  scale_color_manual(values = color_palette_newspaper, name = "") +
+  theme(legend.position="none") +
+  geom_vline(xintercept = as.numeric(c(as.Date("2019-06-24"))),
+                          linetype = c("solid", "solid")) +
+  scale_x_date(limits = as.Date(c("1997-01-01", "2021-11-01"))) 
+
+boris
+```
+### Combined Plots
+
+#### New York Times
+
+British prime minister plot for New York Times.
+```{r, message = F, fig.dim=c(10,5)}
+blair <- df_person %>% 
+  filter(person == "Blair") %>%
+  filter(newspaper == "New York Times") %>% 
+  mutate(
+    president = "Tony Blair"
+  ) 
+
+brown <- df_person %>% 
+  filter(person == "Brown") %>%
+  filter(newspaper == "New York Times") %>% 
+  mutate(
+    president = "Gordon Brown"
+  )
+
+cameron <- df_person %>% 
+  filter(person == "Cameron") %>%
+  filter(newspaper == "New York Times") %>% 
+  mutate(
+    president = "David Cameron"
+  )
+
+boris <- df_person %>% 
+  filter(person == "Boris") %>%
+  filter(newspaper == "New York Times") %>% 
+  mutate(
+    president = "Boris Johnson"
+  )
+
+pres <- rbind(blair, brown, cameron, boris)
+pres <- as_tibble(pres) %>% 
+  mutate(president = as.factor(president))
+
+pres <- pres %>% 
+  mutate(president = fct_relevel(president, c("Tony Blair", "Gordon Brown", "David Cameron")))
+
+pres_nyt <- pres %>% 
+  ggplot() + 
+  aes(x=month, y=penalized_count, color = president) + 
+  geom_point(size = 0.7) +
+  geom_smooth(method="loess", se = F, size = 1.2) +
+  labs(y="Hits per Article", x = "Date", title = "British Prime Ministers Mentioned in New York Times") +
+  scale_x_date(limits = as.Date(c("1996-01-01", "2021-11-01"))) +
+  theme_minimal() +
+  scale_color_manual(values = wes_palette(name = "Darjeeling1"), name = "")
+
+pres_nyt
+```
+
+#### The Guardian
+
+British prime minister plot for the Guardian.
+```{r, message = F, fig.dim=c(10,5)}
+blair <- df_person %>% 
+  filter(person == "Blair") %>%
+  filter(newspaper == "The Guardian") %>% 
+  mutate(
+    president = "Tony Blair"
+  ) 
+
+brown <- df_person %>% 
+  filter(person == "Brown") %>%
+  filter(newspaper == "The Guardian") %>% 
+  mutate(
+    president = "Gordon Brown"
+  )
+
+cameron <- df_person %>% 
+  filter(person == "Cameron") %>%
+  filter(newspaper == "The Guardian") %>% 
+  mutate(
+    president = "David Cameron"
+  )
+
+boris <- df_person %>% 
+  filter(person == "Boris") %>%
+  filter(newspaper == "The Guardian") %>% 
+  mutate(
+    president = "Boris Johnson"
+  )
+
+pres <- rbind(blair, brown, cameron, boris)
+pres <- as_tibble(pres) %>% 
+  mutate(president = as.factor(president))
+
+pres <- pres %>% 
+  mutate(president = fct_relevel(president, c("Tony Blair", "Gordon Brown", "David Cameron")))
+
+pres_guardian <- pres %>% 
+  ggplot() + 
+  aes(x=month, y=penalized_count, color = president) + 
+  geom_point(size = 0.7) +
+  geom_smooth(method="loess", se = F, size = 1.2) +
+  labs(y="Hits per Article", x = "Date", title = "British Prime Ministers Mentioned in The Guardian") +
+  scale_x_date(limits = as.Date(c("1996-01-01", "2021-11-01"))) +
+  theme_minimal() +
+  scale_color_manual(values = wes_palette(name = "Darjeeling1"), name = "")
+
+pres_guardian
+```
+
+#### Both Newspapers Without Facet Wrap
+```{r, message = F, warning = F}
+pres_nyt_y <- pres_nyt +
+  theme(legend.position = "none") +
+  ylim(-0.5,4) +
+  #scale_x_date(limits = as.Date(c("1997-01-01", "2021-11-01"))) +
+  geom_vline(xintercept = as.numeric(c(as.Date("1997-05-02"), as.Date("2007-06-27"), as.Date("2010-05-11"), as.Date("2019-06-24"))),
+                          linetype = c("solid", "solid", "solid", "solid"),
+                          color = c(wes_palette("Darjeeling1")[1], wes_palette("Darjeeling1")[2],
+                                    wes_palette("Darjeeling1")[3], wes_palette("Darjeeling1")[4])) 
+
+
+pres_guardian_y <- pres_guardian +
+  theme(legend.position="bottom") +
+  ylim(-0.5,4) +
+  #scale_x_date(limits = as.Date(c("1997-01-01", "2021-11-01"))) +
+  geom_vline(xintercept = as.numeric(c(as.Date("1997-05-02"), as.Date("2007-06-27"), as.Date("2010-05-11"), as.Date("2019-06-24"))),
+                          linetype = c("solid", "solid", "solid", "solid"),
+                          color = c(wes_palette("Darjeeling1")[1], wes_palette("Darjeeling1")[2],
+                                    wes_palette("Darjeeling1")[3], wes_palette("Darjeeling1")[4]))
+
+
+#combining into single plot
+pres_both_newspapers <- pres_nyt_y / pres_guardian_y
+
+#removing axis text from the first plot
+pres_both_newspapers[[1]] = pres_both_newspapers[[1]] + theme(axis.text.x = element_blank(),
+                                        axis.ticks.x = element_blank(),
+                                        axis.title.x = element_blank() )
+
+pres_both_newspapers
+```
+
+#### Both Newspapers With Facet Wrap
+```{r, message = F, warning = F}
+pres_nyt <- pres_nyt +
+  theme(legend.position = "none") +
+  ylim(-0.5,4) +
+  scale_x_date(limits = as.Date(c("1996-01-01", "2021-11-01")), breaks = "6 years", date_labels = "%Y") +
+  facet_wrap(~president, nrow = 1) + 
+  labs(title = "New York Times")
+  
+pres_guardian <- pres_guardian + 
+  theme(legend.position="none") + 
+  ylim(-0.5,4) +
+  scale_x_date(limits = as.Date(c("1996-01-01", "2021-11-01")), breaks = "6 years", date_labels = "%Y") +
+  facet_wrap(~president, nrow = 1) + 
+  labs(title = "The Guardian")
+
+
+#combining into single plot
+pres_both_newspapers <- pres_nyt / pres_guardian
+
+#removing axis text from the first plot
+pres_both_newspapers[[1]] = pres_both_newspapers[[1]] + theme(axis.text.x = element_blank(),
+                                        axis.ticks.x = element_blank(),
+                                        axis.title.x = element_blank() )
+
+pres_both_newspapers +
+  plot_annotation(title = "Timeline of British Prime Ministers",
+                  theme = theme(plot.title = element_text(size=18)))
+```
+
+## Afghanistan Presidents
+
+### Summary plot
+```{r}
+summary_nyt <- df_person %>% 
+  filter(newspaper == "New York Times") %>% 
+  filter(person %in% c("Karzai", "Ghani")) %>% 
+  group_by(person) %>% 
+  summarise(count = sum(count)) %>%  
+  mutate(hits_pr_article = count/21109) %>% 
+  arrange(desc(hits_pr_article)) %>% 
+  ggplot() + 
+  aes(x=reorder(person, hits_pr_article), y=hits_pr_article) +
+  geom_bar(stat = "identity", fill = color_palette_newspaper[1]) + 
+  coord_flip() + 
+  labs(x= "President", y="Hits per Article", title = "New York Times") + 
+  theme_minimal() + 
+  ylim(0,0.6)
+
+summary_guardian <- df_person %>% 
+  filter(newspaper == "The Guardian") %>% 
+  filter(person %in% c("Karzai", "Ghani")) %>% 
+  group_by(person) %>% 
+  summarise(count = sum(count)) %>%  
+  mutate(hits_pr_article = count/9609) %>% 
+  arrange(desc(hits_pr_article)) %>% 
+  ggplot() + 
+  aes(x=reorder(person, hits_pr_article), y=hits_pr_article) +
+  geom_bar(stat = "identity", fill = color_palette_newspaper[2]) + 
+  coord_flip() + 
+  labs(x= "President", y="Hits per Article", title = "The Guardian") + 
+  theme_minimal() + 
+  ylim(0,0.6)
+
+a <- summary_nyt / summary_guardian +
+  plot_annotation(title = "Afghanistan Presidents",
+                  theme = theme(plot.title = element_text(size=18)))
+
+a
+```
+
+### Hamid Karzai
+
+```{r, message = F}
+karzai <- df_person %>% 
+  filter(person == "Karzai") %>% 
+  ggplot() +
+  aes(x=month, y=penalized_count, color = newspaper) + 
+  geom_point(size = 0.9) +
+  geom_smooth(alpha=0.2, size = 1.2, method = "gam") +
+  labs(y="Hits per Article", x = "Date", title = "Hamid Karzai") +
+  facet_wrap(~newspaper, nrow = 2) +
+  scale_x_date(limits = as.Date(c("2000-01-01", "2021-11-01"))) +
+  theme_minimal() +
+  scale_color_manual(values = color_palette_newspaper, name = "") +
+  theme(legend.position="none")
+
+karzai
+```
+
+### Ashraf Ghani
+
+```{r, message = F}
+ghani <- df_person %>% 
+  filter(person == "Ghani") %>% 
+  ggplot() +
+  aes(x=month, y=penalized_count, color = newspaper) + 
+  geom_point(size = 0.9) +
+  geom_smooth(alpha=0.2, size = 1.2, method = "gam") +
+  labs(y="Hits per Article", x = "Date", title = "Ashraf Ghani") +
+  facet_wrap(~newspaper, nrow = 2) +
+  scale_x_date(limits = as.Date(c("1996-01-01", "2021-11-01"))) +
+  theme_minimal() +
+  scale_color_manual(values = color_palette_newspaper, name = "") +
+  theme(legend.position="none")
+
+ghani
+```
+
+### Combined Plots
+
+#### New York Times
+
+Afghanistan president plot for New York Times.
+```{r, message = F, fig.dim=c(10,5)}
+karzai <- df_person %>% 
+  filter(person == "Karzai") %>%
+  filter(newspaper == "New York Times") %>% 
+  mutate(
+    president = "Hamid Karzai"
+  ) 
+
+ghani <- df_person %>% 
+  filter(person == "Ghani") %>%
+  filter(newspaper == "New York Times") %>% 
+  mutate(
+    president = "Ashraf Ghani"
+  )
+
+
+pres <- rbind(karzai, ghani)
+pres <- as_tibble(pres) %>% 
+  mutate(president = as.factor(president))
+
+pres <- pres %>% 
+  mutate(president = fct_relevel(president, "Hamid Karzai"))
+
+pres_nyt <- pres %>% 
+  ggplot() + 
+  aes(x=month, y=penalized_count, color = president) + 
+  geom_point(size = 0.9) +
+  geom_smooth(method="loess", se = F, size = 1.2) +
+  labs(y="Hits per Article", x = "Date", title = "Afghan Presidents Mentioned in New York Times") +
+  scale_x_date(limits = as.Date(c("1996-01-01", "2021-11-01"))) +
+  theme_minimal() +
+  scale_color_manual(values = color_palette_afghan_pres, name = "")
+
+pres_nyt
+```
+
+#### The Guardian
+
+Afghanistan president plot for the Guardian.
+```{r, message = F, fig.dim=c(10,5)}
+karzai <- df_person %>% 
+  filter(person == "Karzai") %>%
+  filter(newspaper == "The Guardian") %>% 
+  mutate(
+    president = "Hamid Karzai"
+  ) 
+
+ghani <- df_person %>% 
+  filter(person == "Ghani") %>%
+  filter(newspaper == "The Guardian") %>% 
+  mutate(
+    president = "Ashraf Ghani"
+  )
+
+pres <- rbind(karzai, ghani)
+pres <- as_tibble(pres) %>% 
+  mutate(president = as.factor(president))
+
+pres <- pres %>% 
+  mutate(president = fct_relevel(president, "Hamid Karzai"))
+
+pres_guardian <- pres %>% 
+  ggplot() + 
+  aes(x=month, y=penalized_count, color = president) + 
+  geom_point(size = 0.9) +
+  geom_smooth(method="loess", se = F, size = 1.2) +
+  labs(y="Hits per Article", x = "Date", title = "Afghan Presidents Mentioned in The Guardian") +
+  scale_x_date(limits = as.Date(c("1996-01-01", "2021-11-01"))) +
+  theme_minimal() +
+  scale_color_manual(values = color_palette_afghan_pres, name = "")
+
+pres_guardian
+```
+
+#### Both Newspapers Without Facet Wrap
+```{r, message = F}
+pres_nyt_t <- pres_nyt +
+  theme(legend.position = "none") +
+  ylim(-0.5,3.5) +
+  #scale_x_date(limits = as.Date(c("1998-01-01", "2021-11-01"))) +
+  geom_vline(xintercept = as.numeric(c(as.Date("2001-12-22"), as.Date("2014-09-29"))),
+                          linetype = c("solid", "solid"),
+                          color = c(color_palette_afghan_pres[1], color_palette_afghan_pres[2]))
+
+
+pres_guardian_t <- pres_guardian +
+  theme(legend.position="bottom") +
+  ylim(-0.5,3.5) +
+  #scale_x_date(limits = as.Date(c("1998-01-01", "2021-11-01"))) +
+  geom_vline(xintercept = as.numeric(c(as.Date("2001-12-22"), as.Date("2014-09-29"))),
+                          linetype = c("solid", "solid"),
+                          color = c(color_palette_afghan_pres[1], color_palette_afghan_pres[2]))
+
+
+#combining into single plot
+pres_both_newspapers <- pres_nyt_t / pres_guardian_t
+
+#removing axis text from the first plot
+pres_both_newspapers[[1]] = pres_both_newspapers[[1]] + theme(axis.text.x = element_blank(),
+                                        axis.ticks.x = element_blank(),
+                                        axis.title.x = element_blank() )
+
+pres_both_newspapers
+```
+
+#### Both Newspapers With Facet Wrap
+```{r}
+#removing legends
+pres_nyt <- pres_nyt +
+  theme(legend.position = "none") +
+  ylim(-0.5,3) +
+  scale_x_date(limits = as.Date(c("1996-01-01", "2021-11-01")), breaks = "3 years", date_labels = "%Y") +
+  facet_wrap(~president, nrow = 1) + 
+  labs(title = "New York Times")
+  
+pres_guardian <- pres_guardian + 
+  theme(legend.position="none") + 
+  ylim(-0.5,3) +
+  scale_x_date(limits = as.Date(c("1996-01-01", "2021-11-01")), breaks = "3 years", date_labels = "%Y") +
+  facet_wrap(~president, nrow = 1) + 
+  labs(title = "The Guardian")
+
+
+#combining into single plot
+pres_both_newspapers <- pres_nyt / pres_guardian
+
+#removing axis text from the first plot
+pres_both_newspapers[[1]] = pres_both_newspapers[[1]] + theme(axis.text.x = element_blank(),
+                                        axis.ticks.x = element_blank(),
+                                        axis.title.x = element_blank() )
+
+pres_both_newspapers +
+  plot_annotation(title = "Timeline of Afghanistan Presidents",
+                  theme = theme(plot.title = element_text(size=18)))
+```
+
+## Other Persons
+
+### Summary plot
+```{r}
+summary_nyt <- df_person %>% 
+  filter(newspaper == "New York Times") %>% 
+  filter(person %in% c("Laden", "Hussein")) %>% 
+  group_by(person) %>% 
+  summarise(count = sum(count)) %>%  
+  mutate(hits_pr_article = count/21109) %>% 
+  arrange(desc(hits_pr_article)) %>% 
+  ggplot() + 
+  aes(x=reorder(person, hits_pr_article), y=hits_pr_article) +
+  geom_bar(stat = "identity", fill = color_palette_newspaper[1]) + 
+  coord_flip() + 
+  labs(x= "Terrosist", y="Hits per Article", title = "New York Times") + 
+  theme_minimal() + 
+  ylim(0,0.6)
+
+summary_guardian <- df_person %>% 
+  filter(newspaper == "The Guardian") %>% 
+  filter(person %in% c("Laden", "Hussein")) %>% 
+  group_by(person) %>% 
+  summarise(count = sum(count)) %>%  
+  mutate(hits_pr_article = count/9609) %>% 
+  arrange(desc(hits_pr_article)) %>% 
+  ggplot() + 
+  aes(x=reorder(person, hits_pr_article), y=hits_pr_article) +
+  geom_bar(stat = "identity", fill = color_palette_newspaper[2]) + 
+  coord_flip() + 
+  labs(x= "Terrosist", y="Hits per Article", title = "The Guardian") + 
+  theme_minimal() + 
+  ylim(0,0.6)
+
+t <- summary_nyt / summary_guardian +
+  plot_annotation(title = "Terrorists",
+                  theme = theme(plot.title = element_text(size=18)))
+t
+```
+
+### Osama bin Laden
+
+```{r, message = F}
+laden <- df_person %>% 
+  filter(person == "Laden") %>% 
+  ggplot() +
+  aes(x=month, y=penalized_count, color = newspaper) + 
+  geom_point(size = 0.9) +
+  geom_smooth(alpha=0.2, size = 1.2, method = "gam") +
+  labs(y="Hits per Article", x = "Date", title = "Osama bin Laden") +
+  facet_wrap(~newspaper, nrow = 2) +
+  scale_x_date(limits = as.Date(c("1998-01-01", "2021-11-01"))) +
+  theme_minimal() +
+  scale_color_manual(values = color_palette_newspaper, name = "") +
+  theme(legend.position="none") + 
+  ylim(0,8)
+
+laden
+```
+
+### Saddam Hussein
+
+```{r, message = F}
+hussein <- df_person %>% 
+  filter(person == "Hussein") %>% 
+  ggplot() +
+  aes(x=month, y=penalized_count, color = newspaper) + 
+  geom_point(size = 0.9) +
+  geom_smooth(alpha=0.2, size = 1.2, method = "gam") +
+  labs(y="Hits per Article", x = "Date", title = "Saddam Hussein") +
+  facet_wrap(~newspaper, nrow = 2) +
+  scale_x_date(limits = as.Date(c("1996-01-01", "2021-11-01"))) +
+  theme_minimal() +
+  scale_color_manual(values = color_palette_newspaper, name = "") +
+  theme(legend.position="none") 
+
+hussein
+```
+
+### Combined Plots
+
+#### New York Times
+
+Terrorist plot for New York Times.
+```{r, message = F, fig.dim=c(10,5)}
+laden <- df_person %>% 
+  filter(person == "Laden") %>%
+  filter(newspaper == "New York Times") %>% 
+  mutate(
+    terrorist = "Osama bin Laden"
+  ) 
+
+hussein <- df_person %>% 
+  filter(person == "Hussein") %>%
+  filter(newspaper == "New York Times") %>% 
+  mutate(
+    terrorist = "Saddam Hussein"
+  )
+
+
+pres <- rbind(laden, hussein)
+pres <- as_tibble(pres) %>% 
+  mutate(president = as.factor(terrorist))
+
+
+pres_nyt <- pres %>% 
+  ggplot() + 
+  aes(x=month, y=penalized_count, color = terrorist) + 
+  geom_point(size = 0.9) +
+  geom_smooth(method="loess", se = F, size = 1.2) +
+  labs(y="Hits per Article", x = "Date", title = "Terrorists Mentioned in New York Times") +
+  scale_x_date(limits = as.Date(c("1996-01-01", "2021-11-01"))) +
+  theme_minimal() +
+  scale_color_manual(values = color_palette_terrorists, name = "")
+
+pres_nyt
+```
+
+#### The Guardian
+
+Afghanistan president plot for the Guardian.
+```{r, message = F, fig.dim=c(10,5)}
+laden <- df_person %>% 
+  filter(person == "Laden") %>%
+  filter(newspaper == "The Guardian") %>% 
+  mutate(
+    terrorist = "Osama bin Laden"
+  ) 
+
+hussein <- df_person %>% 
+  filter(person == "Hussein") %>%
+  filter(newspaper == "The Guardian") %>% 
+  mutate(
+    terrorist = "Saddam Hussein"
+  )
+
+pres <- rbind(laden, hussein)
+pres <- as_tibble(pres) %>% 
+  mutate(president = as.factor(terrorist))
+
+
+pres_guardian <- pres %>% 
+  ggplot() + 
+  aes(x=month, y=penalized_count, color = terrorist) + 
+  geom_point(size = 0.9) +
+  geom_smooth(method="loess", se = F, size = 1.2) +
+  labs(y="Hits per Article", x = "Date", title = "Terrorists Mentioned in The Guardian") +
+  scale_x_date(limits = as.Date(c("1996-01-01", "2021-11-01"))) +
+  theme_minimal() +
+  scale_color_manual(values = color_palette_terrorists, name = "")
+
+pres_guardian
+```
+
+#### Both Newspapers Without Facet Wrap
+```{r, message = F}
+pres_nyt_t <- pres_nyt +
+  theme(legend.position = "none") +
+  ylim(-0.5,3.5) +
+  #scale_x_date(limits = as.Date(c("1998-01-01", "2021-11-01"))) +
+  geom_vline(xintercept = as.numeric(c(as.Date("2001-12-22"), as.Date("2014-09-29"))),
+                          linetype = c("solid", "solid"),
+                          color = c(color_palette_afghan_pres[1], color_palette_afghan_pres[2]))
+
+
+pres_guardian_t <- pres_guardian +
+  theme(legend.position="bottom") +
+  ylim(-0.5,3.5) +
+  #scale_x_date(limits = as.Date(c("1998-01-01", "2021-11-01"))) +
+  geom_vline(xintercept = as.numeric(c(as.Date("2001-12-22"), as.Date("2014-09-29"))),
+                          linetype = c("solid", "solid"),
+                          color = c(color_palette_afghan_pres[1], color_palette_afghan_pres[2]))
+
+
+#combining into single plot
+pres_both_newspapers <- pres_nyt_t / pres_guardian_t
+
+#removing axis text from the first plot
+pres_both_newspapers[[1]] = pres_both_newspapers[[1]] + theme(axis.text.x = element_blank(),
+                                        axis.ticks.x = element_blank(),
+                                        axis.title.x = element_blank() )
+
+pres_both_newspapers
+```
+
+#### Both Newspapers With Facet Wrap
+```{r}
+#removing legends
+pres_nyt <- pres_nyt +
+  theme(legend.position = "none") +
+  ylim(-0.5,3) +
+  scale_x_date(limits = as.Date(c("1996-01-01", "2021-11-01")), breaks = "3 years", date_labels = "%Y") +
+  facet_wrap(~president, nrow = 1) + 
+  labs(title = "New York Times")
+  
+pres_guardian <- pres_guardian + 
+  theme(legend.position="none") + 
+  ylim(-0.5,3) +
+  scale_x_date(limits = as.Date(c("1996-01-01", "2021-11-01")), breaks = "3 years", date_labels = "%Y") +
+  facet_wrap(~president, nrow = 1) + 
+  labs(title = "The Guardian")
+
+
+#combining into single plot
+pres_both_newspapers <- pres_nyt / pres_guardian
+
+#removing axis text from the first plot
+pres_both_newspapers[[1]] = pres_both_newspapers[[1]] + theme(axis.text.x = element_blank(),
+                                        axis.ticks.x = element_blank(),
+                                        axis.title.x = element_blank() )
+
+pres_both_newspapers +
+  plot_annotation(title = "Timeline of Terrorists",
+                  theme = theme(plot.title = element_text(size=18)))
+```
+
+
+
+
+
+

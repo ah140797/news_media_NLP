@@ -1,0 +1,89 @@
+
+# Cleaning the Data
+
+<style>
+div.blue { background-color:#ffd966; border-radius: 5px; padding: 20px;}
+</style>
+<div class = "blue">
+Note: This chapter is very similar to chapter 5. Here all the steps are just adjusted to the fit the dataset from The Guardian-
+</div>
+
+First thing first, we start by loading the packages `tidyverse` [@tidyverse2019] and`DT` [@R-DT]
+```{r}
+pacman::p_load(tidyverse, DT)
+```
+
+Now it is time to clean up the dataframe `guardian_raw` that we made in chapter \@ref
+
+In this chunk we are going to make the cleaned dataset `guardian_clean` also refered to as `df_guardian` from the dataset `guardian_raw`. It mostly follows the syntax from the package `tidyverse`. 
+```{r cleaning the data2, eval = F}
+#selecting columns to keep
+coloumns_to_select <- c("response.results.webTitle", "response.results.webUrl", "response.results.webPublicationDate")
+
+#creating the new dataframe
+df_guardian <- guardian_raw %>% 
+  
+  #selecting the defined columns
+  select(coloumns_to_select) %>% 
+  
+  #renaming columns to more humane names
+  rename(
+    "headline" = "response.results.webTitle",
+    "url" = "response.results.webUrl",
+    "date" = "response.results.webPublicationDate",
+  ) %>%
+  
+  #formatting columns to the correct class
+  mutate(
+    date = as.Date(date),
+  ) %>% 
+  
+  #arranging by date so that the articles are in chronological order
+  arrange(by=date)
+
+#saving to a csv
+write_csv(df_guardian, "data/guardian/data_additional/guardian_clean_cp2.csv")
+```
+
+Now lets inspect the cleaned dataframe. to see if it looks allright. To do this we use the function `datatable` from the package `DT`.
+
+```{r, message = F, warning = F}
+#reading the csv
+df_guardian <- read_csv("data/guardian/data_additional/guardian_clean_cp2.csv")
+
+#making a nice dataframe that we can browse.
+font.size <- "8pt"
+
+   DT::datatable(
+     df_guardian,
+     rownames = FALSE,
+     filter = "top", 
+     options = list(
+       initComplete = htmlwidgets::JS(
+          "function(settings, json) {",
+          paste0("$(this.api().table().container()).css({'font-size': '", font.size, "'});"),
+          "}"),
+       pagelength = 3,
+       scrollX=T,
+       autoWidth = TRUE
+       ) 
+     )
+```
+The cleaned dataset contains the following columns:
+
+* `headline` which is the title/headline of the article
+* `url` which is a url leading to the the article on The Guardian webpage
+* `date` which is the publication date
+
+All Guchi. 
+
+
+
+
+
+
+
+
+
+
+

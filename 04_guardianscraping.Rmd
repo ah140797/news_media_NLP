@@ -1,0 +1,82 @@
+# (PART) The Guardian {-}
+
+# Scraping articles form the Guardian
+
+<style>
+div.blue { background-color:#ffd966; border-radius: 5px; padding: 20px;}
+</style>
+<div class = "blue">
+This chapter is very similar to chapter 1. Here all the steps are just adjusted to the fit The Guardian's API.
+</div>
+
+First thing first, we start by loading the packages `tidyverse` [@tidyverse2019] and `jsonlite` [@jsonlite2014].
+```{r}
+pacman::p_load(tidyverse, jsonlite)
+```
+
+
+The Guardian has developed a public API which makes it fairly straightforward
+to scrape news articles from their database. The following link will get you 
+started: https://open-platform.theguardian.com/access/. I only wanted to include articles containing the word *Taliban* and thus entered "Taliban" in the query parameter. I also ordered articles by oldest. The result of the query can be found in the URL below.
+```{r setting up API2}
+#defining the url as a string.
+url <- "https://content.guardianapis.com/search?order-by=oldest&q=Taliban&api-key=778d99ad-d154-42e6-ade5-eeb653baf011"
+```
+
+Clicking the url above will open up a JSON-file. Luckily the package called `jsonlite` can handle json-files very effectively, converting them into a nicely formated dataframe with rows as observations and coloumns as variables.
+We first make a dataframe called `initial` which contains 10 observations, i.e. 10 news articles and
+25 variables such as title and url.
+```{r checking output from 10 articles2}
+#loading the JSON file as a dataframe
+initial <- fromJSON(url) %>% data.frame()
+
+#checking dimensions
+dim(initial)
+
+#checking column names
+colnames(initial) %>% 
+  knitr::kable(caption = "Column names of the initial dataset",
+               col.names = "Column Names")
+
+```
+Using the search terms above gives us *16.432* articles in total, but the dataframe `initial` only contains 10 articles. Why is that?
+When requesting news articles from the API, it is important to note that it only returns
+10 results at a time, even though there are many more results. This is like
+searching on Google where each page contains a limited number of results. When
+making a query on the New York Times API it returns 10 results per page. Now we
+need to find out how many pages there are in total. To do so we divide the total
+number of articles by 10 and subtract 1. The total number of pages is *1644*. 
+```{r calculating total pages2}
+total_pages <- round((initial$response.total[1] / 10))
+total_pages
+```
+
+Next up I create a for loop to iterate through all the pages and parse information
+from each page. This is the same process as making `initial` but scaled up to get a dataframe containing all 16.432 articles. 
+```{r iterate through all pages2, eval = F}
+#making an empty list which dataframes can be appended to
+pages <- list()
+
+#Beginning the for-loop
+for(i in 1:total_pages){
+  #The same function as earlier is used with a minor tweak that appends the page-number
+  #to the end of the url.  
+  article <- fromJSON(paste0(url, "&page=", i), flatten = TRUE) %>% data.frame()
+  #Printing a message so I know if all is good
+  message("Retrieving page ", i)
+  #appending the dataframe "article" to the list "pages"
+  pages[[i+1]] <- article 
+  #tHe GUardian have set a limit on 12 requests per minute. That equals 5
+  #seconds of sleep between requests.
+  Sys.sleep(5)
+}
+```
+
+The for loop a list called `pages` which contains 1645 dataframes each containing 10 articles. The function `rbind_pages` is used to combine the list of dataframes into a single dataframe called `guardian_raw`. Now we have scraped 16.432 articles and can continue to data cleaning.
+```{r saving all articles2, eval = F}
+#rbind_pages is used to combine a list of dataframes into a single dataframe
+guardian_raw <- rbind_pages(pages)
+```
+
+
+

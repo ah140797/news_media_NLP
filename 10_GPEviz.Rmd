@@ -1,0 +1,765 @@
+
+# Maps vizualisations
+
+<style>
+div.blue { background-color:#76a5af; border-radius: 5px; padding: 20px;}
+</style>
+<div class = "blue">
+All the code in the chapter is run on both the GPE dataset from NYT and The Guardian respectively but here i only show the processing of the GPE dataset from NYT. 
+</div>
+
+<style>
+div.red { background-color:#e06666; border-radius: 5px; padding: 20px;}
+</style>
+<div class = "red">
+I only plot when the name of a country was mentioned. Mentions of cities, regions etc. does not appear in the maps. dataset from NYT.
+</div>
+
+
+<style>
+div.red { background-color:#e06666; border-radius: 5px; padding: 20px;}
+</style>
+<div class = "red">
+Some countries that are plotted does not exist anymore, e.g. "Soviet". I get around this by plotting these countries as other countries that exist today. Here are the countries in question and what they are plotted as:
+
+* "Soviet" = "Russia"
+* "Kosovo" = "Serbia"
+* "Yogaslavia" = "Serbia"
+* "Tibet" = China
+
+</div>
+
+Here I will make a map of the world showing how different parts of the world were engaged in the Taliban conflict at different points in time. For this we need GPE's. The end product is going to be two vizualisations, basically showing the same trends but in different formats:
+
+1. A plotly interactive map where the user can also browse through time periods.
+2. A shiny app where the user can browse through time periods.
+
+## Preparing the data
+We start by loading a ton of packages: `tidyverse` [@tidyverse2019], `plotly` [@R-plotly], `tigris` [@R-tigris], `sf` [@R-sf], `RColorBrewer` [@R-RColorBrewer], `shiny` [@R-shiny], `leaflet` [@R-leaflet], `htmlwidgets` [@R-htmlwidgets] and `popcircle` [@R-popcircle]. 
+```{r}
+pacman::p_load(tidyverse, plotly, tigris, sf, RColorBrewer, shiny, leaflet, htmlwidgets, popcircle)
+```
+
+
+Alas, we thought that the cleaning days were over, but we still need to do a bit of cleaning before we can get to the plots. We start by loading the GPE. 
+```{r, message = F}
+gpe <- read_csv("data/new_york_times/data_NER/GPE.csv") %>% select(-word)
+colnames(gpe)
+```
+It has four columns:
+
+* `count` which is the number of article hits.
+* `GPE` which is the name of the GPE that has been extracted. 
+* `date` which is the date of the article.
+* `article_index` which is the index of the article in the dataframe `df_full`. 
+
+Then we load what is called a shapefile. I found this data on the following GitHub: https://github.com/RandomEtc/shapefile-js. 
+
+```{r, message = F}
+shapefile <- read_sf("data/data_geo/TM_WORLD_BORDERS_SIMPL-0.3.shp")
+colnames(shapefile)
+```
+Importantly for us, this file contains the three columns:
+
+* `NAME` which is the name of the country.
+* `ISO3` which is the ISO3 code of the country, e.g. "AUS" for "Australia". 
+* `geometry` which is polygon-data on the whereabouts of the country.
+
+### Renaming Countries
+
+Now to fixing the first problem. When merging together `gpe` and `shapefile` there are some countries that have different names in the two datasets. For example in `gpe` there are several names for *United Kingdom* such as *Britain* or *England*. We need to convert these different names for a country to a single name that fits with the country names in `shapefile`. This unfortunately takes some manual labor, as I dont know which different versions of country names that the NER has picked up.
+
+Here we print all the unique GPE's that appear in `gpe` but doesnt appear in `shapefile`. In other words we print those names that need to be changed. I look manually through the list to pick up countries (i.e. not cities, regions, etc.) that need to be changed. Note that nothing is printed here as it will take up too much space. I stopped looking when the count of a GPE went below 30. 
+```{r, eval = F}
+gpe1 <- gpe %>% group_by(GPE) %>%
+  summarise(count=sum(count)) %>%
+  filter(!(unique(gpe$GPE) %in% shapefile$NAME))
+```
+
+All of those countries that i picked out above I write here and correct them to their proper name so they fit with `shapefile`. I save a new file with the fixed names. 
+```{r}
+#replacing names
+gpe <- gpe %>% 
+  mutate(
+    GPE = ifelse(GPE == "America", "United States", GPE),
+    GPE = ifelse(GPE == "U.S.A.", "United States", GPE),
+    GPE = ifelse(GPE == "USA", "United States", GPE),
+    GPE = ifelse(GPE == "U.S.", "United States", GPE),
+    GPE = ifelse(GPE == "States", "United States", GPE),
+    GPE = ifelse(GPE == "Britain", "United Kingdom", GPE),
+    GPE = ifelse(GPE == "England", "United Kingdom", GPE),
+    GPE = ifelse(GPE == "Iran", "Iran (Islamic Republic of)", GPE),
+    GPE = ifelse(GPE == "Korea", "Korea, Democratic People's Republic of", GPE),
+    GPE = ifelse(GPE == "Libya", "Libyan Arab Jamahiriya", GPE),
+    GPE = ifelse(GPE == "Syria", "Syrian Arab Republic", GPE),
+    GPE = ifelse(GPE == "U.K.", "United Kingdom", GPE),
+    GPE = ifelse(GPE == "UK", "United Kingdom", GPE),
+    GPE = ifelse(GPE == "Czech", "Czech Republic", GPE),
+    GPE = ifelse(GPE == "Culumbia", "Colombia", GPE),
+    GPE = ifelse(GPE == "Soviet", "Russia", GPE),
+    GPE = ifelse(GPE == "Saudi", "Saudi Arabia", GPE),
+    GPE = ifelse(GPE == "Vietnam", "Viet Nam", GPE),
+    GPE = ifelse(GPE == "Kosovo", "Serbia", GPE),
+    GPE = ifelse(GPE == "Yugoslavia", "Serbia", GPE),
+    GPE = ifelse(GPE == "Bosnia", "Bosnia and Herzegovina", GPE),
+    GPE = ifelse(GPE == "Tibet", "China", GPE),
+    GPE = ifelse(GPE == "ISRAEL", "Israel", GPE),
+    GPE = ifelse(GPE == "Holland", "Netherlands", GPE),
+    GPE = ifelse(GPE == "Deutschland", "Germany", GPE),
+    GPE = ifelse(GPE == "TURKEY", "Turkey", GPE),
+    GPE = ifelse(GPE == "turkey", "Turkey", GPE),
+    GPE = ifelse(GPE == "pakistan", "Pakistan", GPE),
+    GPE = ifelse(GPE == "SPAIN", "Spain", GPE),
+    GPE = ifelse(GPE == "JAPAN", "Japan", GPE),
+    GPE = ifelse(GPE == "Gaza", "Palestine", GPE),
+    GPE = ifelse(GPE == "CANADA", "Canada", GPE),
+    GPE = ifelse(GPE == "States", "United States", GPE),
+    GPE = ifelse(GPE == "Kingdom", "United Kingdom", GPE),
+    GPE = ifelse(GPE == "Zealand", "New Zealand", GPE),
+    GPE = ifelse(GPE == "Lanka", "Sri Lanka", GPE)
+  )
+
+```
+
+Thus we have prepared the dataset `gpe` to be merged with `shapefile` at a later stage.
+
+
+### Every country gets a row for every date
+
+So far so good. Next up, there is a problem with the data that makes the visualizations dull. If a country is not mentioned on a specific date there is no row to signify that. There is just a missing row. Here I add a row for each country at every date where it is not mentioned and set the number of times mentioned to 0. This way every country gets a row for every date.
+
+I start by tidying up `gpe`: transforming GPE to factor, adding a column indicating the year, dropping the columns `date` and `article_index`, grouping by `GPE` and `year`, summarizing the sum of hits and finally filtering only the countries that also appear in `shapefile`.
+```{r, message = F, warning = F}
+gpe <- gpe %>%
+  mutate(GPE = as.factor(GPE),
+         year = str_sub(date, 1, 4),
+         year = as.integer(year)
+         ) %>%
+  select(-c(date, article_index)) %>% 
+  group_by(GPE, year) %>%
+  summarise(count = sum(count)) %>%
+  filter(GPE %in% shapefile$NAME)
+```
+
+Then i find out how many unique countries that appear both in `gpe` and in `shapefile`. 
+```{r}
+gpe2 <- gpe %>% group_by(GPE) %>%
+  summarise(count=sum(count)) %>%
+  filter(GPE %in% shapefile$NAME)
+```
+
+Then i make two lists of unique countries and years `all_countries` and `all_years`. I then use the function `expand.grid` to make a new dataframe with all the possible combinations of country and years. In other words every country has a row for every year
+```{r}
+all_countries <- as.list(gpe2$GPE)
+all_years <- as.list(unique(gpe$year))
+all_combs <- expand.grid(all_countries, all_years)
+```
+
+Next up, I tidy up: renaming columns, making columns to factor, adding a new column `count` which is equal to 0, and select the columns needed. 
+```{r}
+all_combs <- as_tibble(all_combs) %>% 
+  rename(GPE = Var1, year = Var2) %>% 
+  mutate(
+    count = 0,
+    GPE = as.factor(as.character(GPE)),
+    year = as.integer(as.character(year))
+  ) %>% 
+  select(GPE, year, count) %>% 
+  arrange(year)
+```
+
+Now i can concatenate the two dataframes `gpe` and `all_combs` in a new dataframe called `gpe_large`. This dataframe has 6833 observations, but we want it to only have 4131 rows, i.e. a row for each combination of country and date. So I remove all rows where values in `GPE` and `year` are the same. This way i only add a row for combinations of `GPE` and `year` that doesnt already exist. 
+```{r}
+gpe_large <- rbind(gpe, all_combs)
+gpe_large <- as_tibble(gpe_large) %>% 
+  distinct(GPE, year, .keep_all = TRUE)
+```
+
+Voila.
+
+
+### Making a unique dataset for Plotly and Shiny respectively
+
+Now we can finally merge `gpe` and `shapefile` so that each country gets assigned an ISO3 code and geometry data. We use the function `geo_join` because shapefile is an object called `sf`.
+```{r}
+class(shapefile)
+```
+
+We start by making `gpe_shiny` which is the dataset used to make the shiny app.
+```{r, warning = F}
+gpe_shiny <- geo_join(shapefile, gpe_large,
+                   "NAME", "GPE",
+                   how = "inner") %>% 
+  select(
+    c("ISO3", "NAME", "count", "year")
+  ) %>% 
+  rename(country = NAME)
+
+colnames(gpe_shiny)
+```
+Alright, `gpe_shiny` looks ready to rock and roll.  
+
+I make another dataframe called `gpe_plotly` which we will use to make the plotly map. For the plotly map we dont need the column `geometry`, we only need the ISO3-codes from the `shapefile`. I make this dataset by selecting the columns `ISO3`, `country`, `count` and `year`. 
+```{r}
+#making new dataset
+gpe_plotly <- tibble(
+    ISO3 = gpe_shiny$ISO3,
+    country = gpe_shiny$country,
+    count = gpe_shiny$count,
+    year = gpe_shiny$year
+  )
+```
+
+
+### Making a penalized count
+
+Okay, so we don't want the plots to be too much influenced by the number of articles that were published in the given year. Therefore we will make a new variable called `penalized_count` which is the number of hits per article in the given year.  
+
+I start by loading the good old full dataframe as`df`.
+```{r, message = F}
+df1 <- read_csv("data/new_york_times/NYT_clean_1.csv")
+df2 <- read_csv("data/new_york_times/NYT_clean_2.csv")
+df3 <- read_csv("data/new_york_times/NYT_clean_3.csv")
+
+df <- rbind(df1, df2, df3)
+df <- as_tibble(df)
+```
+
+Then i add a new variable called `year`, group articles by year, and count the number of articles per year. 
+```{r}
+df <- df %>% mutate(
+  year = str_sub(date, 1, 4),
+  year = as.integer(year)
+) %>% 
+  group_by(year) %>% 
+  tally() %>% 
+  rename(sum_articles_yearly = n)
+```
+
+Then i merge `df` with `gpe_plotly`, so that we now have a column in `gpe_plotly` called `sum_articles_yearly` which indicates the total number of articles published in the given year.
+```{r}
+gpe_plotly <- left_join(gpe_plotly, df, by = "year")
+```
+
+Then i make a new variable where i divide the number of hits by the total number of articles published in the given year.
+```{r}
+gpe_plotly <- gpe_plotly %>% 
+  mutate(
+    penalized_count = count/sum_articles_yearly,
+    penalized_count_round = round(penalized_count, 1)
+  )
+```
+
+I apply the same steps to `gpe_shiny`.
+```{r}
+gpe_shiny <- left_join(gpe_shiny, df, by = "year")
+
+gpe_shiny <- gpe_shiny %>% 
+  mutate(
+    penalized_count = count/sum_articles_yearly,
+    penalized_count_round = round(penalized_count, 1)
+  ) %>% 
+  arrange(year)
+```
+
+No more changes need to be added to `gpe_shiny`. So here i save it.
+```{r, eval = F}
+saveRDS(gpe_shiny, file = "data/new_york_times/gpe_shiny_NYT.rds")
+```
+
+
+### Setting up the binsize {#binsize}
+Next step is setting up an appropiate binsize for the values in `penalized_count`. I make a density plot to get an overview of the data shown in figure \@ref(fig:dens1). 
+```{r dens1, fig.width=8, fig.cap= "Density plot of penalized count.", warning = F}
+gpe_plotly %>% 
+  ggplot() +
+  aes(x=penalized_count) + 
+  geom_density(fill = "lightblue") +
+  theme_minimal() 
+```
+In figure \@ref(fig:dens1) we see that an overwhelming amount of the values of `penalized_count` are found in in range ~0-0.1.
+In fact 89% of all the values of `panelized_count` are found in the range 0-0.1.
+```{r}
+sum(gpe_plotly$penalized_count < 0.2) / length(gpe_plotly$penalized_count)
+```
+Here i make another density plot showing the values in range 0-0.1.
+```{r dens2, fig.width=8, fig.cap= "Density plot of penalized count.", warning = F}
+gpe_plotly %>% 
+  ggplot() +
+  aes(x=penalized_count) + 
+  geom_density(fill = "lightblue") +
+  xlim(0,0.1) +
+  theme_minimal()
+```
+In figure \@ref(fig:dens2) we even see that most values are found in the range 0-0.05. We want to be able to distinguish these smaller values. That is why we change the binsize. 
+
+Okay, lets get to defining the binsize. I can maximally define 9 bins. Based on \@ref(fig:dens2) i choose to make small bins at low values and then gradually increase the size of the bins. This way smaller values are more easily distinguished. The downturn is that larger values are harder to distinguish, but remember that we have very few of these large values.    
+```{r}
+mybins <- c(0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.1, 0.2, max(gpe_plotly$penalized_count))
+mypalette <- colorBin(palette="YlOrRd", domain=gpe_plotly$penalized_count, bins=mybins)
+```
+
+
+### Fixing the legend scales to absolute values.  
+
+The next issue with the vizualisations in Plotly (not in shiny) is that the legends are scaled to the specific year. This makes the colors on the map relative to the year and not related to the other years which is confusing and misleading. We are gonna fix this by doing something a little dirty. For each year we will add new row with the country Liechtenstein and a count of the maximum number of times a country is mentioned. Thus each year will contain a high value of `count` attached to the country Liechenstein. This will make the scales related to all years which is what i call absolute values. 
+
+I admit it is a dirty way of fixing the legend/coloring issues. But Liechenstein is actually not present in the map so it doesnt make a difference to the final product.
+
+Here i make a new dataframe `LIE` with the same columns as `gpe_plotly` and 27 rows all containing the country Liechenstein and the maximum number in `count`.   
+```{r}
+#making a variable with the number of years
+num_years <- (unique(gpe_plotly$year))
+
+#making a new dataset
+LIE <- tibble(
+    ISO3 = rep("LIE", length(num_years)),
+    country = rep("Liechtenstein", length(num_years)),
+    count = rep(max(gpe_plotly$count), length(num_years)),
+    year = num_years,
+    penalized_count = rep(max(gpe_plotly$penalized_count), length(num_years)),
+    sum_articles_yearly = rep(max(gpe_plotly$sum_articles_yearly), length(num_years)),
+    penalized_count_round = round(penalized_count, 1)
+  )
+```
+
+Then i concatenate `gpe_plotly` and `LIE`.
+```{r}
+gpe_plotly <- rbind(LIE, gpe_plotly) 
+```
+
+We also add a new column with a hover-text used for the map.
+```{r}
+gpe_plotly <- gpe_plotly %>% 
+  mutate(
+    hover = paste0(country, "\nNumber of hits: ", count, "\nNumber of articles: ", sum_articles_yearly, "\nNumber of hits per article: ", penalized_count_round)
+  )
+```
+
+And we save it.
+```{r, warning = F, eval = F}
+write_csv(gpe_plotly, "data/new_york_times/GPE_plotly_NYT.csv")
+```
+Allright, now our data is in the right format and we can continue to the fun stuff. 
+
+### Making a dataframe with contrasts 
+
+Allright, in the shiny app we also want to show the difference in the number of hits pr. article (`penalized_count`) for a given country between New York Times and The Guardian. I call this difference a *contrast*. This way you can more easily get a grasp of the differences between the newspapers. I will one contrast:
+
+* `Contrast`: NYT - The Guardian. So if NYT has more hits pr. article the value will be positive and if the guardian has more hits pr. article then the value will be negative. 
+
+We start by loading the data for both datasets.
+```{r}
+gpe_shiny_nyt <- readRDS(file = "data/new_york_times/gpe_shiny_NYT.rds")
+gpe_shiny_guardian <- readRDS(file = "data/guardian/gpe_shiny_guardian.rds")
+```
+
+Then we join the two dataframes together. Notice that we convert the sf-objects into ordinary dataframes.
+```{r}
+gpe_shiny_contrast <- inner_join(gpe_shiny_nyt %>% as.data.frame(), gpe_shiny_guardian %>% as.data.frame(), by = c("ISO3", "year", "country"), suffix = c("_NYT", "_guardian"))
+```
+
+Then we make two new columns for `contrast_1` and `contrast_2` respectively, select the columns we are interrested in and renaming the column `geometry`. Data wrangling bby. 
+```{r}
+gpe_shiny_contrast <- gpe_shiny_contrast %>% 
+  mutate(
+    contrast = (penalized_count_NYT - penalized_count_guardian),
+    contrast_round = round(contrast, 2)
+  ) %>% 
+  select(c(ISO3, country, year, geometry_NYT, contrast, contrast_round)) %>% 
+  rename(geometry = geometry_NYT)
+```
+
+We `gpe_shiny_contrast` into an sf-object again and save it.
+```{r}
+gpe_shiny_contrast <- st_sf(x = gpe_shiny_contrast,
+                              sf_column_name = 'geometry')
+
+saveRDS(gpe_shiny_contrast, file = "data/new_york_times/GPE_shiny_contrast.rds")
+```
+
+
+Lastly we check what the binsize should be using the same procedure as \@ref(binsize).
+I make a density plot to get an overview of the data shown in figure \@ref(fig:denscontrast1). 
+```{r denscontrast1, fig.width=8, fig.cap= "Density plot of penalized count.", warning = F}
+gpe_shiny_contrast %>% 
+  ggplot() +
+  aes(x=contrast) + 
+  geom_density(fill = "lightblue")  + 
+  labs(x = "contrast") +
+  xlim(-0.25,0.25)  +
+  theme_minimal()
+```
+In figure \@ref(fig:denscontrast1) we see that an overwhelming amount of the values in `contrast` are found in in range ~-0.05:0.05.
+
+Okay, lets get to defining the binsize. I can maximally define 11 bins. Based on \@ref(fig:denscontrast1) i choose to make small bins at certain values close to 0. This way some values are more easily distinguished. The downturn is that other values are harder to distinguish, but remember that we will have few of these values.    
+```{r, eval = F}
+mybins <- c(min(gpe_shiny_contrast$contrast), -0.05, -0.0375, -0.025, -0.0125, 0, 0.0125, 0.025, 0.0375, 0.05, max(gpe_shiny_contrast$contrast))
+mypalette <- colorBin(palette="PRGn", domain=gpe_shiny_contrast$contrast, bins=mybins)
+```
+
+## Plotly Maps
+We start by loading the datasets `gpe_plotly_NYT` and `gpe_plotly_guardian`.
+```{r, message = F}
+gpe_plotly_NYT <- read_csv("data/new_york_times/GPE_plotly_NYT.csv")
+gpe_plotly_guardian <- read_csv("data/guardian/GPE_plotly_guardian.csv")
+```
+
+
+First we define some fonts and labels for the maps. This is purely for aesthetics.   
+```{r}
+font = list(
+  family = "DM Sans",
+  size = 15,
+  color = "black"
+)
+
+label = list(
+  bgcolor = "#EEEEEE",
+  bordercolor = "transparent",
+  font = font
+)
+```
+
+Then we make two maps called `NYT_map` and `guardian_map`. Finally the work starts to pay off. 
+```{r}
+#making the plot for NYT
+NYT_map <- plot_geo(gpe_plotly_NYT,
+                          locationmode = "world",
+                          frame = ~year) %>% 
+  add_trace(locations = ~ISO3,
+            z = ~penalized_count,
+            color = ~penalized_count,
+            colors = mypalette,
+            text = ~hover,
+            hoverinfo = "text") %>% 
+  layout(font = list(family = "DM Sans"),
+         title = "The worlds involvement in the Taliban-conflict: New York Times",
+         legend) %>% 
+  style(hoverlabel = label) %>% 
+  config(displayModeBar = F) %>% 
+  colorbar(title = "Number of hits per article in the given year", len=0.8)
+
+#making the plot for The Guardian
+guardian_map <- plot_geo(gpe_plotly_guardian,
+                          locationmode = "world",
+                          frame = ~year) %>% 
+  add_trace(locations = ~ISO3,
+            z = ~penalized_count,
+            color = ~penalized_count,
+            colors = mypalette,
+            text = ~hover,
+            hoverinfo = "text") %>% 
+  layout(font = list(family = "DM Sans"),
+         title = "The worlds involvement in the Taliban-conflict: The Guardian",
+         legend) %>% 
+  style(hoverlabel = label) %>% 
+  config(displayModeBar = F) %>% 
+  colorbar(title = "Number of hits per article in the given year", len=0.8)
+
+NYT_map
+guardian_map
+
+```
+
+
+## Shiny App
+*Note: Here i only show the code for the ShinyApp; it wont be able to run in a normal R-markdown. So if you want to run it you need to open up the R file called shinyapp.R in the subfolder shinyapp/. This is a special type of file used for shiny apps. The final application can be found in the folder results/*.
+
+I wont go too much into the nitty-gritty of making the App, but just explain the general idea. A shinyapp consists of a *front-end* and a *back-end*. The front-end is the user-interface (ui) that the user navigates with. The back-end or the server is what happens behind the scenes to make it all work. So we define a *ui* and a *server* and then we run the application using the function `shinyApp`. 
+```{r, warning = F, message = F, eval = F}
+#Loading data
+df_NYT <- readRDS(file = "gpe_shiny_NYT.rds")
+df_guardian <- readRDS(file = "GPE_shiny_guardian.rds")
+df_contrast <- readRDS("GPE_shiny_contrast.rds")
+
+
+# Define UI for application
+ui <- fluidPage(
+  
+    #Application title
+    titlePanel("The world's involvement in the Taliban-conflict"),
+    
+    #Sidebar with a date output
+    sidebarLayout(
+      
+        sidebarPanel(
+            tags$a(href="https://github.com/ah140797/taliban_newspapers", "Data Repository", target = "_blank"),
+            h5("These maps illustrate the worlds involvement in the Taliban-conflict using New York Times and The Guardian as sources.
+            The colors of the countries indicate the number of hits pr article in the year selected for the given country"),
+            h5("You can switch between the tabs to select either New York Times, The Guardian and the Contrast"),
+            h5("The panel Contrast shows the difference in the number of hits pr. article for a given country between
+            New York Times and The Guardian. Positive values (green) indicate that the country has more hits pr. article in New York Times
+            as compared to The Guardian and vice versa."),
+            h5("Note that mentions of cities, regions etc. does not appear in the maps"),
+            
+        sliderInput(inputId = "date",
+                    label = "Select a year",
+                    min = 1996,
+                    max = 2021,
+                    value = 1996,
+                    step = 1
+                 )
+        ),
+    mainPanel(
+        tabsetPanel(
+            tabPanel("New York Times", leafletOutput("NYT")),
+            tabPanel("The Guardian", leafletOutput("guardian")),
+            tabPanel("Contrast", leafletOutput("contrast"))
+        )
+    )
+    )
+  )
+
+
+#define server logic
+server <- function(input, output) {
+    
+    #------------------------New York Times-------------------------------------
+    year_NYT <- reactive({
+        w <- df_NYT %>% filter(year == input$date)
+        return(w)
+    })
+    
+    output$NYT <- renderLeaflet({
+        # Create a color palette with handmade bins. NB. play around with bin numbers
+        mybins <- c(0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.1, 0.2, max(df_NYT$penalized_count))
+        mypalette <- colorBin(palette="YlOrRd", domain=df_NYT$penalized_count, bins=mybins)
+        
+        # Prepare the text for tooltips:
+        mytext <- paste(
+            "Country: ", year_NYT()$country,"<br/>", 
+            "Number of hits per article: ", year_NYT()$penalized_count_round, sep="") %>%
+            lapply(htmltools::HTML)
+        
+        # Final Map
+        leaflet(year_NYT()) %>% 
+            addTiles()  %>% 
+            setView(lat=10, lng=0 , zoom=1.5) %>%
+            addPolygons( 
+                fillColor = ~mypalette(year_NYT()$penalized_count), 
+                stroke=TRUE, 
+                fillOpacity = 0.9, 
+                color="white", 
+                weight=0.3,
+                label = mytext,
+                highlightOptions = highlightOptions(weight = 2,
+                                                    fillOpacity = 1,
+                                                    color = "black",
+                                                    opacity = 1,
+                                                    bringToFront = TRUE),
+                labelOptions = labelOptions(style = list("font-weight" = "normal", padding = "3px 8px"), 
+                                            textsize = "13px", 
+                                            direction = "auto")) %>% 
+            
+            addLegend(pal=mypalette,
+                      values=~penalized_count,
+                      opacity=0.9, title = "Number of hits pr. article",
+                      position = "bottomright")
+        
+    })
+    
+    
+    #--------------------------------The Guardian-------------------------------
+    year_guardian <- reactive({
+      w <- df_guardian %>% filter(year == input$date)
+      return(w)
+    })
+    
+    output$guardian <- renderLeaflet({
+      # Create a color palette with handmade bins. NB. play around with bin numbers
+      mybins <- c(0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.1, 0.2, max(df_guardian$penalized_count))
+      mypalette <- colorBin(palette="YlOrRd", domain=df_guardian$penalized_count, bins=mybins)
+      
+      # Prepare the text for tooltips:
+      mytext <- paste(
+        "Country: ", year_guardian()$country,"<br/>", 
+        "Number of hits per article: ", year_guardian()$penalized_count_round, sep="") %>%
+        lapply(htmltools::HTML)
+      
+      # Final Map
+      leaflet(year_guardian()) %>% 
+        addTiles()  %>% 
+        setView(lat=10, lng=0 , zoom=1.5) %>%
+        addPolygons( 
+          fillColor = ~mypalette(year_guardian()$penalized_count), 
+          stroke=TRUE, 
+          fillOpacity = 0.9, 
+          color="white", 
+          weight=0.3,
+          label = mytext,
+          highlightOptions = highlightOptions(weight = 2,
+                                              fillOpacity = 1,
+                                              color = "black",
+                                              opacity = 1,
+                                              bringToFront = TRUE),
+          labelOptions = labelOptions(style = list("font-weight" = "normal", padding = "3px 8px"), 
+                                      textsize = "13px", 
+                                      direction = "auto")) %>% 
+        
+        addLegend(pal=mypalette,
+                  values=~penalized_count,
+                  opacity=0.9, title = "Number of hits pr. article",
+                  position = "bottomright")
+      
+    }) 
+    
+    #--------------------------------Contrast-------------------------------
+    year_contrast <- reactive({
+      w <- df_contrast %>% filter(year == input$date)
+      return(w)
+    })
+    
+    output$contrast <- renderLeaflet({
+      # Create a color palette with handmade bins. NB. play around with bin numbers
+      mybins <- c(min(df_contrast$contrast), -0.05, -0.0375, -0.025, -0.0125, 0, 0.0125, 0.025, 0.0375, 0.05, max(df_contrast$contrast))
+      mypalette <- colorBin(palette="PRGn", domain=df_contrast$contrast, bins=mybins)
+      
+      # Prepare the text for tooltips:
+      mytext <- paste(
+        "Country: ", year_contrast()$country,"<br/>", 
+        "Contrast: ", year_contrast()$contrast_round, sep="") %>%
+        lapply(htmltools::HTML)
+      
+      # Final Map
+      leaflet(year_contrast()) %>% 
+        addTiles()  %>% 
+        setView(lat=10, lng=0 , zoom=1.5) %>%
+        addPolygons( 
+          fillColor = ~mypalette(year_contrast()$contrast), 
+          stroke=TRUE, 
+          fillOpacity = 0.9, 
+          color="white", 
+          weight=0.3,
+          label = mytext,
+          highlightOptions = highlightOptions(weight = 2,
+                                              fillOpacity = 1,
+                                              color = "black",
+                                              opacity = 1,
+                                              bringToFront = TRUE),
+          labelOptions = labelOptions(style = list("font-weight" = "normal", padding = "3px 8px"), 
+                                      textsize = "13px", 
+                                      direction = "auto")) %>% 
+        
+        addLegend(pal=mypalette,
+                  values=~contrast,
+                  opacity=0.9, title = "Contrast",
+                  position = "bottomright")
+      
+    }) 
+
+
+}
+
+
+#run the application
+```
+
+## Popcircle
+This link will give you some background information: https://github.com/rcarto/popcircle. 
+
+Allright lets go. We start by making the datasets we need. We take the dataset `gpe_plotly`, group it by country, summarize the sum of `count` and making a new column `count_per_article` which indicates how many times a country appears pr. article. 
+```{r, eval = F}
+gpe_popcircle_NYT <- gpe_plotly %>% 
+  group_by(country, ISO3) %>% 
+  summarize(count = sum(count),
+            count_per_article = count/21109)
+```
+
+Then we merge `gpe_popcircle_NYT` with `gpe_shiny` to get the column `geometry` back into the mix. We make `gpe_popcircle_NYT` an object of class `sf` and finally save it as an rds-object.
+```{r, eval = F}
+gpe_popcircle_NYT <- left_join(gpe_popcircle_NYT, gpe_shiny, by = "ISO3") %>% 
+  select(c("country.x", ISO3, "count.x", count_per_article, geometry)) %>% 
+  distinct()
+
+gpe_popcircle_NYT <- st_as_sf(gpe_popcircle_NYT)
+
+saveRDS(gpe_popcircle_NYT, file = "data/new_york_times/gpe_popcircle_NYT.rds")
+```
+
+
+Here we load the data.
+```{r, message = F}
+gpe_popcircle_nyt <- readRDS("data/new_york_times/gpe_popcircle_NYT.rds")
+gpe_popcircle_guardian <- readRDS("data/guardian/gpe_popcircle_guardian.rds")
+
+```
+
+In the next chunk we make a new object called `nyt` which is used to make the plot. 
+```{r, warning = F, message = F}
+#there were some error and this fixed it :)
+sf::sf_use_s2(FALSE)
+
+# Computes circles and polygons
+nyt <- popcircle(x = gpe_popcircle_nyt, var = "count_per_article")
+circles_nyt <- nyt$circles
+shapes_nyt <- nyt$shapes
+shapes_nyt <- st_transform(shapes_nyt, 4326)
+circles_nyt <- st_transform(circles_nyt, 4326)
+
+# Create labels
+shapes_nyt$lab <- paste0("<b>", shapes_nyt$country.x, "</b> <br>", 
+                         round(shapes_nyt$count_per_article, 2), " Hits per Article")
+```
+We also make an object for The Guardian called `guardian`. 
+```{r, warning = F, message = F}
+# Computes circles and polygons
+guardian <- popcircle(x = gpe_popcircle_guardian, var = "count_per_article")
+circles_guardian <- guardian$circles
+shapes_guardian <- guardian$shapes
+shapes_guardian <- st_transform(shapes_guardian, 4326)
+circles_guardian <- st_transform(circles_guardian, 4326)
+
+
+# Create labels
+shapes_guardian$lab <- paste0("<b>", shapes_guardian$country.x, "</b> <br>", 
+                         round(shapes_guardian$count_per_article, 2), " Hits per Article")
+```
+
+Then we make the visualizations.
+
+### New York Times
+```{r}
+# Create the interactive visualisation
+leaflet(shapes_nyt, width=800, height = 750) %>%
+  addPolygons(data = circles_nyt,  opacity = 1,
+              color = "white", weight = 1.5,
+              options = list(interactive = FALSE),
+              fill = T, fillColor = "#757083",
+              fillOpacity = 1, smoothFactor = 0) %>%
+  addPolygons(data = shapes_nyt,  opacity = .8,
+              color = "#88292f",
+              weight = 1.5, popup = shapes_nyt$lab,
+              options = list(clickable = TRUE),
+              fill = T, fillColor = "#88292f",
+              fillOpacity = .9, smoothFactor = .5)
+```
+### The Guardian
+```{r}
+# Create the interactive visualisation
+leaflet(shapes_guardian, width=800, height = 750) %>%
+  addPolygons(data = circles_guardian,  opacity = 1,
+              color = "white", weight = 1.5,
+              options = list(interactive = FALSE),
+              fill = T, fillColor = "#757083",
+              fillOpacity = 1, smoothFactor = 0) %>%
+  addPolygons(data = shapes_guardian,  opacity = .8,
+              color = "#88292f",
+              weight = 1.5,popup = shapes_guardian$lab,
+              options = list(clickable = TRUE),
+              fill = T, fillColor = "#88292f",
+              fillOpacity = .9, smoothFactor = .5)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+

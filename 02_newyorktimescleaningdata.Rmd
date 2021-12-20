@@ -1,0 +1,79 @@
+
+# Cleaning The Data 
+Now it is time to clean up the dataframe `NYT_raw`. 
+
+First thing first, we start by loading the packages `tidyverse` [@tidyverse2019] and`DT` [@R-DT].
+```{r}
+pacman::p_load(tidyverse, DT)
+```
+
+Here we are going to make the cleaned dataset `NYT_clean` also refered to as `df_NYT` from the dataset `NYT_raw`. It mostly follows the syntax from the package `tidyverse`. 
+```{r cleaning the data, eval = F}
+#selecting columns to keep
+coloumns_to_select <- c("response.docs.headline.main",
+"response.docs.web_url", "response.docs.pub_date")
+
+#creating the new dataframe
+df_NYT <- NYT_raw %>% 
+  #selecting the defined columns
+  select(coloumns_to_select) %>% 
+  
+  #renaming columns to more humane names
+  rename(
+    "headline" = "response.docs.headline.main",
+    "url" = "response.docs.web_url",
+    "date" = "response.docs.pub_date",
+  ) %>%
+  
+  #formatting columns to the correct class
+  mutate(
+    date = as.Date(date)
+  ) %>% 
+  
+  #arranging by date so that the articles are in chronological order
+  arrange(by=date)
+
+
+#saving to a csv
+write_csv(df_NYT, "data/new_york_times/data_additional/NYT_clean_cp2.csv")
+```
+
+Now lets inspect the cleaned dataframe. to see if it looks allright. To do this we use the function `datatable` from the package `DT`. The cleaned dataset contains the following columns:
+
+* `headline` which is the title/headline of the article
+* `url` which is a url leading to the the article on the NYT webpage
+* `date` which is the publication date
+
+```{r, message = F, warning = F}
+#reading the csv
+df_NYT <- read_csv("data/new_york_times/data_additional/NYT_clean_cp2.csv")
+
+#making a nice dataframe that we can browse. Note that we remove abstract because there is too much text in it to show in a nice way.
+font.size <- "8pt"
+   DT::datatable(
+     df_NYT,
+     rownames = FALSE,
+     filter = "top", 
+     options = list(
+       initComplete = htmlwidgets::JS(
+          "function(settings, json) {",
+          paste0("$(this.api().table().container()).css({'font-size': '", font.size, "'});"),
+          "}"),
+       pagelength = 3,
+       scrollX=T,
+       autoWidth = TRUE
+       ) 
+     )
+```
+
+
+
+
+
+
+
+
+
+
+
+

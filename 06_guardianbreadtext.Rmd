@@ -1,0 +1,145 @@
+
+
+# Scrape bread text of articles
+
+<style>
+div.green { background-color:#93c47d; border-radius: 5px; padding: 20px;}
+</style>
+<div class = "green">
+This chapter is written in Python. To see the original file go to the folder python_scripts/.
+</div>
+
+<style>
+div.yellow { background-color:#ffd966; border-radius: 5px; padding: 20px;}
+</style>
+<div class = "yellow">
+Note: This chapter is very similar to chapter 6. Here all the steps are just adjusted to the fit the dataset from The Guardian-
+</div>
+
+## Scraping in Python
+
+The cleaned dataframe `df_guardian` contains a coloumn called `url`. Clicking on this url 
+leads us to the article on The Guardian. Now we are going to move into Python
+to scrape the breadtext from the URL's. There is a package called `BeautifulSoup`
+which makes this less painful to do. That is why i use Python here.
+
+The chunk below loads packages and the data.  
+```{python, eval = F, python.reticulate = F}
+from bs4 import BeautifulSoup
+import requests
+import pandas as pd
+
+#importing the cleaned data
+df_guardian = pd.read_csv("data/guardian/data_additional/guardian_clean_cp2.csv")
+```
+
+The chunk below is where the work takes place. It first sets up variables for the iteration. The for-loop iterates through all the url's in the dataframe, makes a "soup" which is basically the html for that url. Then there is something unfortunate. The bread texts of the articles does not appear under the same class as was the case with the articles from NYT. Instead the bread texts appear under multiple classes. I define these classes, loop through them to find the correct one and insert the correct class in the function `find_all`.Then it appends the bread text to a list. Lastly it writes a new column to the dataframe containing the bread text for each article and overwrites the old dataframe.  
+```{python looping2, eval = F, python.reticulate = F}
+#making an empty list where the breadtext from all articles can be appended to
+all_bread = []
+
+#making an index to print in the for-loop
+i = 0
+
+#interate through each url in df, scrape the breadtext and appending it to the list all_bread
+for url in df_guardian['url']:
+    # setting up empty string
+    bread_article = ""
+
+    #sending request for url
+    page = requests.get(url)
+
+    #creating soup (lingo from the package beautifulsoup)
+    soup = BeautifulSoup(page.text, "lxml")
+    
+    #breadtext appears under more than one tag. So here we define these tags.
+    tags = ['dcr-o5gy41','dcr-t0ikv9','dcr-bixwrd']
+    
+    #specify the tag where the bread text is.
+    soup = str(soup)
+    for tag in tags: 
+        if tag in soup:
+            correct_tag = tag
+            print(correct_tag)
+    
+    #defining soup again
+    soup = BeautifulSoup(page.text, "lxml")    
+    
+    #finding the breadtext using beautifulsoup and the correct tag
+    for pre_bread in soup.find_all("p", class_=correct_tag):
+        bread = pre_bread.text
+        bread_article += " " + bread
+
+    all_bread.append(bread_article)
+    i += 1
+    print("Scraping article ", i, "/", len(df_guardian.index))
+            
+
+#making a new column in df containing all the breadtext for each observation respectively
+df_guardian['bread_text'] = all_bread
+```
+
+## Inspecting the bread text
+We load the data into R.
+```{r, message = F}
+df_guardian <- read_csv("data/guardian/data_additional/guardian_clean_cp3.csv")
+```
+
+
+All right. Let's see how the new coloumn looks when we load it into R. It is a wall of text - not very
+readable for a human, but that is quite allright. 
+```{r inspecting the breadtext3}
+#printing the breadtext from the 16. article.
+c(df_guardian[16,4])
+```
+
+We also check how many articles were failed to scrape. That number is 6.826 which is ~ 40% of all the articles. This is quite a lot, but we still have 9609 articles left.    
+```{r inspecting the breadtext2}
+#checking how many articles failed to scrape
+sum(is.na(df_guardian$bread_text))
+```
+Let's inspect these missing articles a bit further. Do they come from a specific time period?
+```{r yeye2, warning = F, fig.cap= "Timeline of the number of missing articles compared to intact articles.", fig.width=10, message = F}
+#making a dataframe containing the sum of missing articles for each date
+y1 <- df_guardian %>% 
+    filter(is.na(bread_text)) %>% 
+    group_by(date) %>% 
+    tally() %>% 
+    rename(missing_articles = n) %>% 
+    ungroup()
+
+#making a dataframe containing the sum of articles for each date
+y2 <- df_guardian %>% 
+    filter(!is.na(bread_text)) %>%
+    group_by(date) %>% 
+    tally() %>% 
+    rename(articles = n) %>% 
+    ungroup()
+
+#joining the two dataframes together and plotting articles and missing articles a ton top of each other according to date.
+left_join(y2, y1) %>% 
+    pivot_longer(
+        cols = c("missing_articles", "articles"),
+        names_to = "article_type"
+    ) %>% 
+    ggplot() + 
+    aes(x=date, y= value, color = article_type) + 
+    geom_line() +
+    labs(y = "hits")
+
+```
+Eyeballing figure \@ref(fig:yeye2) it is the case that the missing articles stems from certain time periods around 2001 and also around 2009-2010. The implications for the further analysis is that there will be some weak points in the timeline, where the number of articles to be analyzed are a bit sparse. Furthermore, some valueable articles might be missing at crucial points in the timeline. However, there are still not any points in the timeline where the number of articles drops completely, so that is good.
+
+
+Finally we save a new dataframe where the articles with missing bread text are filtered out. Our new dataframe has 9.609 rows corresponding to 9.609 articles. 
+```{r, eval = F}
+#filtering out missing articles
+df_guardian <- df_guardian %>%  filter(!is.na(bread_text))
+
+#saving
+write_csv(df_guardian, "data/guardian/guardian_clean.csv")
+```
+
+
+
+

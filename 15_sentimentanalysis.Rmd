@@ -1,0 +1,78 @@
+
+# Sentiment Analysis
+
+<style>
+div.blue { background-color:#93c47d; border-radius: 5px; padding: 20px;}
+</style>
+<div class = "blue">
+This chapter is written in Python. To see the original file go to the folder python_scripts/.
+</div>
+
+I am going to do a simple sentiment analysis using the libary `spaCyTextBlob`. We start by importing packages, data and nlp pipeline.  
+```{python, eval = F, python.reticulate = F}
+import spacy
+import numpy as np
+import pandas as pd
+from spacytextblob.spacytextblob import SpacyTextBlob
+
+#loading the dataframes and combining them 
+df1 = pd.read_csv("data/new_york_times/NYT_clean_1.csv")
+df2 = pd.read_csv("data/new_york_times/NYT_clean_2.csv")
+df3 = pd.read_csv("data/new_york_times/NYT_clean_3.csv")
+
+#combining
+df = pd.concat([df1, df2, df3])
+
+#loading small english model
+nlp = spacy.load("en_core_web_sm")
+```
+
+Then we add a pipe to the nlp-pipeline, so it can perform sentiment analysis. 
+```{python adding textblob, eval = F, python.reticulate = F}
+nlp.add_pipe('spacytextblob')
+```
+
+Now we are set to go. We iterate though all the articles and calculate the polarity and subjectivity for each article respectively. This should look somewhat familiar.  
+```{python forloop, eval = F, python.reticulate = F}
+#defining index to loop over
+article_index = 0
+
+#defining lists for polarity and subjectivity
+all_polarity = []
+all_subjectivity = []
+
+#looping over bread texts from all articles and running the functions on them
+for article in df.index:
+    #load article using index
+    article = df.iloc[article_index,4] 
+    
+    #appending polarity and subjectivity
+    all_polarity.append(article._.polarity)
+    all_subjectivity.append(article._.subjectivity)
+
+    #indexing to next article
+    article_index += 1
+    
+    #checking the progress
+    print(article_index)
+    
+
+#making new columns in df for polarity and subjectibity respectively
+df['polarity'] = all_polarity
+df['subjectivity'] = all_subjectivity
+```
+
+We finish up by saving the data as three datasets
+```{r, eval = F}
+#splitting into three datasets
+df1 = df.iloc[0:7500,]
+df2 = df.iloc[7501:15000,]
+df3 = df.iloc[15001:21113,]
+
+#saving to three new files
+df1.to_csv("data/new_york_times/NYT_clean1.csv", index = False)
+df2.to_csv("data/new_york_times/NYT_clean2.csv", index = False)
+df3.to_csv("data/new_york_times/NYT_clean3.csv", index = False)
+```
+
+

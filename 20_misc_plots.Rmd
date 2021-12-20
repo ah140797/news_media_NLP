@@ -1,0 +1,70 @@
+# (PART) Miscellaneous {-}
+
+# Miscellaneous Plots
+
+Here I will plot the number of articles published each month. 
+
+I load packages
+```{r}
+pacman::p_load(tidyverse, wesanderson)
+```
+
+I load the datasets
+```{r}
+df_nyt <- read_csv("data/new_york_times/data_additional/NYT_clean_cp2.csv")
+
+df_guardian <- read_csv("data/guardian/data_additional/guardian_clean_cp2.csv")
+```
+
+Here I quickly define some color palettes with colors that i like. These palettes will be used for different plots. The same colors will be used consistently throughout the notebook.
+```{r}
+color_palette_newspaper <- c(wes_palette("Chevalier1")[1], wes_palette("Darjeeling2")[2])
+```
+
+I do some wrangling.
+```{r}
+df_nyt <- df_nyt %>% 
+  mutate(newspaper = "New York Times",
+         month = lubridate::floor_date(date, "month"),
+         month = as.Date(month))
+
+df_guardian <- df_guardian %>% 
+  mutate(newspaper = "The Guardian",
+         month = lubridate::floor_date(date, "month"),
+         month = as.Date(month))
+```
+
+```{r}
+df_both <- rbind(df_nyt, df_guardian)
+df_both <- as_tibble(df_both)
+```
+
+```{r}
+df_both <- df_both %>% 
+  group_by(month, newspaper) %>% 
+  tally() %>% 
+  rename(sum_articles_month = n)
+```
+
+Plotting.
+```{r, warning = F, message = F}
+q <- df_both %>% 
+  ggplot() + 
+  aes(x=month, color = newspaper) +
+  #geom_smooth(method = "gam", aes(y=sum_articles_month), size = 1.2) + 
+  geom_line(aes(y=sum_articles_month), size = 1.2) +
+  geom_point(aes(y=sum_articles_month), size = 0.7) + 
+  scale_x_date(limits = as.Date(c("1996-01-01", "2021-11-01")), breaks = "2 years", date_labels = "%Y") + 
+  facet_wrap(~newspaper, nrow = 2) + 
+  labs(x="Date", y = "Sum of Articles", title = "Timeline of the Number of Articles Published") +
+  theme_minimal() +
+  scale_color_manual(values = color_palette_newspaper, name = "") +
+  theme(legend.position="none")
+
+q
+```
+
+
+
+
+

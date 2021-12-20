@@ -1,0 +1,75 @@
+# (PART) New York Times {-}
+
+# Scraping News Articles with New York Times API 
+First thing first, we start by loading the packages `tidyverse` [@tidyverse2019] and `jsonlite` [@jsonlite2014].
+```{r}
+pacman::p_load(tidyverse, jsonlite)
+```
+
+
+New York Times has developed a public API which makes it fairly straightforward
+to scrape news articles from their database. The following link will get you 
+started: https://developer.nytimes.com/. I used the Article Search API to search 
+news articles. I only wanted to include articles containing the word *Taliban* and thus entered "Taliban" in the q query parameter. The result of the query can be found in the URL below.  
+```{r setting up API}
+#defining the url as a string.
+url <- "https://api.nytimes.com/svc/search/v2/articlesearch.json?q=Taliban&api-key=vsGvjCtUXFjiKDlAUQgubKUhe7MjVWJR"
+```
+
+Clicking the url above will open up a JSON-file. Luckily the package called `jsonlite` can handle json-files very effectively, converting them into a nicely formated dataframe with rows as observations and coloumns as variables.
+We first make a dataframe called `initial` which contains 10 observations, i.e. 10 news articles and
+25 variables such as title and abstract.
+```{r checking output from 10 articles}
+#loading the JSON file as a dataframe
+initial <- fromJSON(url) %>% data.frame()
+
+#checking dimensions
+dim(initial)
+
+#checking column names
+colnames(initial) %>% 
+  knitr::kable(caption = "Column names of the initial dataset",
+               col.names = "Column Names")
+
+```
+Using the search terms above gives us *23.500* articles in total, but the dataframe `initial` only contains 10 articles. Why is that?
+When requesting news articles from the API, it is important to note that it only returns
+10 results at a time, even though there are many more results. This is like
+searching on Google where each page contains a limited number of results. When
+making a query on the New York Times API it returns 10 results per page. Now we
+need to find out how many pages there are in total. To do so we divide the total
+number of articles by 10 and subtract 1. The total number of pages is *2350*. 
+```{r calculating total pages}
+total_pages <- round((initial$response.meta.hits[1] / 10)-1)
+total_pages
+```
+
+Next up I create a for loop to iterate through all the pages and parse information
+from each page. This is the same process as making `initial` but scaled up to get a dataframe containing all 23.500 articles. 
+```{r iterate through all pages, eval = F}
+#making an empty list which dataframes can be appended to
+pages <- list()
+
+#Beginning the for-loop
+for(i in 0:total_pages){
+  #The same function as earlier is used with a minor tweak that appends the page-number
+  #to the end of the url.  
+  article <- fromJSON(paste0(url, "&page=", i), flatten = TRUE) %>% data.frame()
+  #Printing a message so I know if all is good
+  message("Retrieving page ", i)
+  #appending the dataframe "article" to the list "pages"
+  pages[[i+1]] <- article 
+  #New York Times have set a limit on 10 requests per minute. That equals 6
+  #seconds of sleep between requests.
+  Sys.sleep(6)
+}
+```
+
+The for loop a list called `pages` which contains 2350 dataframes each containing 10 articles. The function `rbind_pages` is used to combine the list of dataframes into a single dataframe called `NYT_raw`. Now we have scraped 23.502
+articles and can continue to data cleaning ^[The process of the scraping articles was actually not this simple. Instead of scraping all the articles in a single for-loop I had to chunk the articles into chunks below 200 pages, because for some reason pages above 200 could not be opened. I did this by using the parameters `begin_date` and `end_date` In addition to this, there is a rate limit of 4.000 articles. pr day which means that you have to run the process over several days. I contacted the NYT developer team on the mail code@nytimes.com and manged to have my call limit raised so the process was speeded up.].
+
+```{r saving all articles, eval = F}
+#rbind_pages is used to combine a list of dataframes into a single dataframe
+NYT_raw <- rbind_pages(pages)
+```
+

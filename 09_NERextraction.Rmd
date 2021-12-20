@@ -1,0 +1,252 @@
+
+# Extracting NER's
+
+<style>
+div.green { background-color:#93c47d; border-radius: 5px; padding: 20px;}
+</style>
+<div class = "green">
+This chapter is written in Python. To see the original file go to the folder python_scripts/.
+</div>
+
+<style>
+div.blue { background-color:#76a5af; border-radius: 5px; padding: 20px;}
+</style>
+<div class = "blue">
+All the code in the chapter is run on both df_NYT and df_guardian but here i only show the processing df_NYT.
+</div>
+
+Lets move into the code. We load up packages, data and the small english model. 
+```{python, eval = F, python.reticulate = F}
+import spacy
+import numpy as np
+import pandas as pd
+from collections import Counter
+
+#loading the dataframes and combining them 
+df1 = pd.read_csv("data/new_york_times/NYT_clean_1.csv")
+df2 = pd.read_csv("data/new_york_times/NYT_clean_2.csv")
+df3 = pd.read_csv(("data/new_york_times/NYT_clean_3.csv")
+
+#combining
+df = pd.concat([df1, df2, df3])
+
+#loading small english model
+nlp = spacy.load("en_core_web_sm")
+```
+
+Next up we define helper functions that pick up entities and assign them to a category, e.g. person or Organisation (ORG) There are a lot of functions below but really it is just repetition of the same procedure: The functions takes an article and filters out entities from the desired category (e.g. VERB or GPE). It then adds a date-stamp to them. Lastly it makes a counter-object which is a special type of object data that groups values by unique names and counts the number of instances. Lets go bby.   
+```{python helperfunctiosn, eval = F, python.reticulate = F}
+#-------------functions for counting the number of instances of different objects---------------------
+
+#Nouns
+def noun_freq(article):   
+ nouns = [token.text for token in article if token.pos_ == "NOUN"]
+ new_nouns = []
+ for noun in nouns:
+    noun = noun + "_" + Date
+    noun = noun + "_" + str(article_index)  
+    new_nouns.append(noun)
+ noun_freq = Counter(new_nouns)
+ return(noun_freq)
+
+#Verbs
+def verb_freq(article):     
+ verbs = [token.text for token in article if token.pos_ == "VERB"]
+ new_verbs = []
+ for verb in verbs:
+    verb = verb + "_" + Date
+    verb = verb + "_" + str(article_index)   
+    new_verbs.append(verb)
+ verb_freq = Counter(new_verbs)
+ return(verb_freq)
+
+#Adjectives
+def adjective_freq(article):   
+ adjectives = [token.text for token in article if token.pos_ == "ADJ"]
+ new_adjectives = []
+ for adjective in adjectives:
+    adjective = adjective + "_" + Date
+    adjective = adjective + "_" + str(article_index)   
+    new_adjectives.append(adjective)
+ adjective_freq = Counter(new_adjectives)
+ return(adjective_freq)
+
+#GPE
+def GPE_freq(article):   
+ GPEs = [token.text for token in article if token.ent_type_ == "GPE"]
+ new_GPEs = []
+ for GPE in GPEs:
+    GPE = GPE + "_" + Date
+    GPE = GPE + "_" + str(article_index)  
+    new_GPEs.append(GPE)
+ GPE_freq = Counter(new_GPEs)
+ return(GPE_freq)
+
+
+#FAC - buildings, airports, brigdes etc.
+def FAC_freq(article):   
+ FACs = [token.text for token in article if token.ent_type_ == "FAC"]
+ new_FACs = []
+ for FAC in FACs:
+    FAC = FAC + "_" + Date
+    FAC = FAC + "_" + str(article_index)   
+    new_FACs.append(FAC)
+ FAC_freq = Counter(new_FACs)
+ return(FAC_freq)
+
+#Person
+def person_freq(article):   
+ persons = [token.text for token in article if token.ent_type_ == "PERSON"]
+ new_persons = []
+ for person in persons:
+    person = person + "_" + Date
+    person = person + "_" + str(article_index) 
+    new_persons.append(person)
+ person_freq = Counter(new_persons)
+ return(person_freq)
+
+#ORG - organisations
+def ORG_freq(article):   
+ ORGs = [token.text for token in article if token.ent_type_ == "ORG"]
+ new_ORGs = []
+ for ORG in ORGs:
+    ORG = ORG + "_" + Date
+    ORG = ORG + "_" + str(article_index)
+    new_ORGs.append(ORG)
+ ORG_freq = Counter(new_ORGs)
+ return(ORG_freq)
+
+```
+
+Next up, we will iterate through all the articles and apply the helper functions to extract entities. This is also quite a large chunk but again there is a lot of repetition. First, we define an index to loop over and then we define empty counter-objects that we can append to in the loop. Then inside the loop we access the date and index of the article and the article itself. We then apply the helper functions from above to such the article dry of entities.
+```{python for-loop, eval = F, python.reticulate = F}
+#defining index to loop over
+article_index = 0
+
+#Setting up empty Counter-objects to append to in the for-loop
+all_nouns = Counter()
+all_verbs = Counter()
+all_adjectives = Counter()
+all_GPEs = Counter()
+all_FACs = Counter()
+all_persons = Counter()
+all_ORGs = Counter()
+
+#looping over bread texts from all articles and running the functions on them
+for article in df.index:
+    #accesing the Date of the article
+    Date = df.iloc[article_index, 3]
+    #load article using index
+    article = df.iloc[article_index,5] 
+    #making article to an nlp-object
+    article = nlp(article)
+    
+    #-------------------------------------------------------------------
+    #------ Counting all objects-of-interest in Counter-objects --------
+    #-------------------------------------------------------------------
+    #nouns
+    some_nouns = noun_freq(article)
+    all_nouns += some_nouns
+    #verbs
+    some_verbs = verb_freq(article)
+    all_verbs += some_verbs
+    #adjectives
+    some_adjectives = adjective_freq(article)
+    all_adjectives += some_adjectives
+    #GPEs
+    some_GPEs = GPE_freq(article)
+    all_GPEs += some_GPEs
+    #FACs
+    some_FACs = FAC_freq(article)
+    all_FACs += some_FACs 
+    #persons
+    some_persons = person_freq(article)
+    all_persons += some_persons
+    #ORGs
+    some_ORGs = ORG_freq(article)
+    all_ORGs += some_ORGs
+
+      
+    #indexing to next article
+    article_index += 1
+    
+    #checking progress
+    print(article_index)
+```
+
+Now we have one counter object for each category, e.g. GPEs or persons. I realized that there were issues with some of the values. Here we make sure that all the values are in the same format of "word_date_index". We basically remove values that has more than two "_". 
+```{python fixing format, eval = F, python.reticulate = F}
+counter_objects = [all_nouns, all_verbs, all_adjectives, all_GPEs, all_FACs, all_persons, all_ORGs]
+
+
+for counter_object in counter_objects:
+    to_be_deleted = []
+    
+    #finding the malformity
+    for ele in counter_object:
+        if ele.count("_") != 2:
+            print(ele)
+            to_be_deleted.append(ele)
+            
+    #deleting the malformity
+    for ele in to_be_deleted:
+        if ele in counter_object:
+            del counter_object[ele]
+```
+
+Cleaning done. Now we have one counter object for each category and we want to save those to plain old dataframes. A format that we know and love. Again there is quite a bit of repetition but in short it goes down like this: First, the counter object is saved to a pandas dataframe, the columns are renamed and sorted by `count` so that values with highest count appears first. Then the values which has the format "word_date_index" are split into three columns, `word`, `date` and `index`. Lastly the dataframe is saved. The result is one dataframe for each category, each containing three columns `word`, `date`, `index` and `count`. 
+```{python saving, eval = F, python.reticulate = F}
+#Saving all the counter-objects to individual dataframes
+
+#all_nouns
+df_all_nouns = pd.DataFrame.from_dict(all_nouns, orient='index').reset_index()
+df_all_nouns = df_all_nouns.rename(columns={'index':'word', 0:'count'})
+df_all_nouns = df_all_nouns.sort_values(by='count', ascending = False)
+df_all_nouns[['noun', 'date', 'article_index']] = df_all_nouns.word.str.split("_",expand=True,)
+df_all_nouns.to_csv("data/new_york_times/data_NER/noun.csv", index = False)
+
+#all_verbs
+df_all_verbs = pd.DataFrame.from_dict(all_verbs, orient='index').reset_index()
+df_all_verbs = df_all_verbs.rename(columns={'index':'word', 0:'count'})
+df_all_verbs = df_all_verbs.sort_values(by='count', ascending = False)
+df_all_verbs[['verb', 'date', 'article_index']] = df_all_verbs.word.str.split("_",expand=True,)
+df_all_verbs.to_csv("data/new_york_times/data_NER/verb.csv", index = False)
+
+#all_adjectives
+df_all_adjectives = pd.DataFrame.from_dict(all_adjectives, orient='index').reset_index()
+df_all_adjectives = df_all_adjectives.rename(columns={'index':'word', 0:'count'})
+df_all_adjectives = df_all_adjectives.sort_values(by='count', ascending = False)
+df_all_adjectives[['adjective', 'date', 'article_index']] = df_all_adjectives.word.str.split("_",expand=True,)
+df_all_adjectives.to_csv("data/new_york_times/data_NER/adjective.csv", index = False)
+
+#all_GPEs
+df_all_GPEs = pd.DataFrame.from_dict(all_GPEs, orient='index').reset_index()
+df_all_GPEs = df_all_GPEs.rename(columns={'index':'word', 0:'count'})
+df_all_GPEs = df_all_GPEs.sort_values(by='count', ascending = False)
+df_all_GPEs[['GPE', 'date', 'article_index']] = df_all_GPEs.word.str.split("_",expand=True,)
+df_all_GPEs.to_csv("data/new_york_times/data_NER/GPE.csv", index = False)
+
+#all_FACs
+df_all_FACs = pd.DataFrame.from_dict(all_FACs, orient='index').reset_index()
+df_all_FACs = df_all_FACs.rename(columns={'index':'word', 0:'count'})
+df_all_FACs = df_all_FACs.sort_values(by='count', ascending = False)
+df_all_FACs[['FAC', 'date', 'article_index']] = df_all_FACs.word.str.split("_",expand=True,)
+df_all_FACs.to_csv("data/new_york_times/data_NER/FAC.csv", index = False)
+
+#all_persons
+df_all_persons = pd.DataFrame.from_dict(all_persons, orient='index').reset_index()
+df_all_persons = df_all_persons.rename(columns={'index':'word', 0:'count'})
+df_all_persons = df_all_persons.sort_values(by='count', ascending = False)
+df_all_persons[['person', 'date', 'article_index']] = df_all_persons.word.str.split("_",expand=True,)
+df_all_persons.to_csv("data/new_york_times/data_NER/person.csv", index = False)
+
+#all_ORGs
+df_all_ORGs = pd.DataFrame.from_dict(all_ORGs, orient='index').reset_index()
+df_all_ORGs = df_all_ORGs.rename(columns={'index':'word', 0:'count'})
+df_all_ORGs = df_all_ORGs.sort_values(by='count', ascending = False)
+df_all_ORGs[['ORG', 'date', 'article_index']] = df_all_ORGs.word.str.split("_",expand=True,)
+df_all_ORGs.to_csv("data/new_york_times/data_NER/ORG.csv", index = False)
+```
+
+We have now successfully extracked the entities and can move on!
+

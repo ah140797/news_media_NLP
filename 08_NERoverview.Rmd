@@ -1,0 +1,34 @@
+# (PART) Named Entity recognition (NER) {-}
+
+# Overview {-}
+
+Named entity recognition (NER) is an NLP-technique used to classify entities into categories such as persons, locations, verbs etc. The NER in `spaCy` has been trained on a corpus and learned to recognize these entities and classify them correctly. However, it does not pick up *all instances* of a person or location because it is only as good as the corpus it was trained on. But still, we are going to help it a little bit. 
+
+There are many categories of entities. We are interested the following entities. Most of them are self-explanatory. Others i will explain:
+
+*`nouns` 
+*`verbs`
+*`adjectives`
+*`GPEs` which is short for Geo-Political-Entity, i.e. countries, cities, states.
+*`persons`
+
+
+We are also going to look for the entities below as an exploratory exercise, to see if we can find something interesting. But they wont be used for later analysis. 
+
+*`FACs` which buildings, airports etc.
+*`ORGs` which is organizations
+
+
+## Structure {-}
+In chapter 8 I will head into python to extract all the entities from the categories described above. 
+
+In chapter 9 I make a map of the world showing how different parts of the world were engaged in the Taliban conflict at different points in time. For this we need GPE's. The end product is going to be two vizualisations, basically showing the same trends but in different formats:
+
+1. A plotly interactive map where the user can also browse through time periods.
+2. A shiny app where the user can browse through time periods.
+
+In chapter 10 i want to extract key persons from the Taliban conflict and make timelines showing how different persons were active at different points in time of the conflict. 
+
+In chapter 11 i want to extract key organisations from the Taliban conflict and make timelines showing how different organisations were active at different points in time of the conflict. 
+
+In chapter 12 I want to extract important `words`, `nouns`, `verbs` and `adjecives` and make timelines. I will use these timelines to make some general claims about the conflict. 

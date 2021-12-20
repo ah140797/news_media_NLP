@@ -1,0 +1,68 @@
+--- 
+title: "Taliban Project"
+author: "Anders Havbro Hjulmand"
+date: "`r Sys.Date()`"
+site: bookdown::bookdown_site
+documentclass: book
+bibliography: [book.bib, packages.bib]
+# url: your book url like https://bookdown.org/yihui/bookdown
+# cover-image: path to the social sharing image like images/cover.jpg
+description: |
+  This is a minimal example of using the bookdown package to write a book.
+  The HTML output format for this example is bookdown::gitbook,
+  set in the _output.yml file.
+link-citations: yes
+github-repo: rstudio/bookdown-demo
+---
+
+# Overview {-}
+
+This notebook contains the accompanying code to the exam project for the course *Introduction to Cultural Data Science* in the autumn of 2021 at the University of Aarhus. This notebook only contains code. Please see the report for the full project. 
+
+## Software {-}
+The code in this notebook is written in **R** and **Python**. I used **Rstudio** and **Jupyter Notebook** as IDE's. A lot of packages are used throughout the book. The references to the packages can be found in \@ref(rference)
+
+## Structure {-}
+The structure of the notebook is as follows.
+
+* In step 1 I acquire the data needed and tidy so it is ready for analysis. 
+* In step 2 I make Named Entity Recognition (NER) and plot.
+* In step 3 i make a sentiment analysis and plot.
+* In step 4 i make a LDA topic model and plot.
+
+![](images/taliban_new.png){width=2000%} 
+
+## How to read the notebook {-}
+I have made 4 different highlight colors that i use throughout the book to indicate different things. These colors appear at the beginning of the chapter.
+
+<style>
+div.green { background-color:#93c47d; border-radius: 5px; padding: 20px;}
+</style>
+<div class = "green">
+A green color indicates that the chapter (or part of it) was written in Python. 
+</div>
+
+<style>
+div.blue { background-color:#e6f0ff; border-radius: 5px; padding: 20px;}
+</style>
+<div class = "blue">
+A blue color indicates that the code in the chapter is run on multiple datasets, but that the code only shows the pipeline of a single dataset. To run the code on the other dataset, minor changes are needed such as changing paths. 
+</div>
+
+<style>
+div.yellow { background-color:#ffd966; border-radius: 5px; padding: 20px;}
+</style>
+<div class = "yellow">
+A yellow color indicates that the chapter is very similar to another chapter with only minor adjustments. 
+</div>
+
+<style>
+div.red { background-color:#e06666; border-radius: 5px; padding: 20px;}
+</style>
+<div class = "red">
+A red color indicates something that the reader should be extra attentive to. 
+</div>
+
+
+
+
