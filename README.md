@@ -16,6 +16,14 @@ It would also be useful to incorporate a non-western newspaper such as Al Jazeer
 ### Reproducibility Notebook
 The most relevant file in the repository is the *Reproducibility Notebook*. 
 This file presents all the accompanying code as a notebook using r-markdown and the package bookdown. 
+Here is an overview of the content in the reproducibility notebook.
+![Overview of the Reproducibility Notebook](images/flowchart reproducibility notebook.png)
+
+* In step 1 I acquire the data needed and tidy so it is ready for analysis. 
+* In step 2 I make Named Entity Recognition (NER) and plot.
+* In step 3 i make a sentiment analysis and plot.
+* In step 4 i make a LDA topic model and plot.
+ 
 There are two options to view the reproducibility notebook. I recommend option 1. 
 
 1. The slow but more robust option: First, clone the repository to a local repository. Then navigate to the folder named
