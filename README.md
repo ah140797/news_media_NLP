@@ -16,10 +16,10 @@ It would also be useful to incorporate a non-western newspaper such as Al Jazeer
 ### Reproducibility Notebook
 The most relevant file in the repository is the *Reproducibility Notebook*. 
 This file presents all the accompanying code as a notebook using r-markdown and the package bookdown. 
-Here is an overview of the content in the reproducibility notebook.
 
 <br />
 
+Here is an overview of the content in the reproducibility notebook.
 ![Overview of the Reproducibility Notebook](images/flowchart_reproducibility_notebook.png)
 
 * In step 1 I acquire the data needed and tidy so it is ready for analysis. 
@@ -36,7 +36,7 @@ There are two options to view the reproducibility notebook. I recommend option 1
 
 ### Other files
 You will also find 23 r-markdown scripts named through *01_*, *02_* etc. Each script
-corresponds to a chapter in the reproducibility notebook. 
+corresponds to a chapter in the reproducibility notebook. The file *index.Rmd* is the first chapter of the reproducibility notebook.
 
 You will also find the following folders:
 
