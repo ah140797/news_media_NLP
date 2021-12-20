@@ -14,8 +14,16 @@ It would also be useful to incorporate a non-western newspaper such as Al Jazeer
 
 ## Files in the Repository
 
+### Reproducibility Notebook
 The most relevant file in the repository is the *Reproducibility Notebook*. 
 This file presents all the accompanying code as a notebook using r-markdown and the package bookdown. 
+There are two options to view the reproducibility notebook:
+
+1. The slow but more robust option: First, clone the repository to a local repository. Then navigate to the folder named
+*_book* and open the file named *index.html*. I open the file in Google Chrome and it runs smoothly. 
+2. The quick but slightly buggy option: Simply go to the webpage: https://htmlpreview.github.io/?https://raw.githubusercontent.com/ah140797/news_media_NLP/master/_book/index.html
+
+
 
 In this folder you find 23 r-markdown scripts named through *01_*, *02_* etc. Each script
 corresponds to a chapter in the reproducibility notebook. 
