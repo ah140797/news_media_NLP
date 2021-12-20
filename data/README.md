@@ -1,10 +1,10 @@
-#Metadata
+# Metadata
 
-Here is the metadata for all datasets. 
+The table below shows the metadata for all the datasets. Here you can see the filename, the format and a brief description of the dataset. 
 
 <br />
 
-![Metadata](metadata_image.png)
+!<img src="https://image-url.type" width="200" height="200">(metadata_image.png)
 
 
 
