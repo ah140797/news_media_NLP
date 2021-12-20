@@ -30,7 +30,7 @@ The structure of the notebook is as follows.
 * In step 3 i make a sentiment analysis and plot.
 * In step 4 i make a LDA topic model and plot.
 
-![](images/taliban_new.png){width=2000%} 
+![](images/flowchart_reproducibility_notebook.png){width=2000%} 
 
 ## How to read the notebook {-}
 I have made 4 different highlight colors that i use throughout the book to indicate different things. These colors appear at the beginning of the chapter.
