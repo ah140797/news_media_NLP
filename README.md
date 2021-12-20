@@ -38,7 +38,7 @@ You will also find the following folders:
 The app is hosted online: https://ah140797.shinyapps.io/shinyapp/. 
 If the link doesn’t work the application can be run in R. First, clone the repository to a local repository.
 Then navigate to the folder *shinyapp/* and open the file called *app.R* in RStudio. Then run the commands:
-`library(shiny)` and `runApp("<your working directory>/shinyapp/app.R")
+`library(shiny)` and `runApp("<your working directory>/shinyapp/app.R")`
 
 ## How to Run the Project
 
