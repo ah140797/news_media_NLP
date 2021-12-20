@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+<head>
+
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>Chapter 6 Scrape bread text of articles | Taliban Project</title>
+  <meta name="description" content="<p>This is a minimal example of using the bookdown package to write a book.
+The HTML output format for this example is bookdown::gitbook,
+set in the _output.yml file.</p>" />
+  <meta name="generator" content="bookdown 0.24 and GitBook 2.6.7" />
+
+  <meta property="og:title" content="Chapter 6 Scrape bread text of articles | Taliban Project" />
+  <meta property="og:type" content="book" />
+  
+  
+  <meta property="og:description" content="<p>This is a minimal example of using the bookdown package to write a book.
+The HTML output format for this example is bookdown::gitbook,
+set in the _output.yml file.</p>" />
+  <meta name="github-repo" content="rstudio/bookdown-demo" />
+
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Chapter 6 Scrape bread text of articles | Taliban Project" />
+  
+  <meta name="twitter:description" content="<p>This is a minimal example of using the bookdown package to write a book.
+The HTML output format for this example is bookdown::gitbook,
+set in the _output.yml file.</p>" />
+  
+
+<meta name="author" content="Anders Havbro Hjulmand" />
+
+
+<meta name="date" content="2021-12-20" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  
+  
+<link rel="prev" href="cleaning-the-data-1.html"/>
+<link rel="next" href="preprocess-breadtext-for-both-datasets.html"/>
+<script src="libs/header-attrs-2.11/header-attrs.js"></script>
+<script src="libs/jquery-3.5.1/jquery-3.5.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fuse.js@6.4.6/dist/fuse.min.js"></script>
+<link href="libs/gitbook-2.6.7/css/style.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-table.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-bookdown.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-highlight.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-search.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-fontsettings.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-clipboard.css" rel="stylesheet" />
+
+
+
+
+
+
+
+
+<link href="libs/anchor-sections-1.0.1/anchor-sections.css" rel="stylesheet" />
+<script src="libs/anchor-sections-1.0.1/anchor-sections.js"></script>
+<script src="libs/htmlwidgets-1.5.3/htmlwidgets.js"></script>
+<link href="libs/datatables-css-0.0.0/datatables-crosstalk.css" rel="stylesheet" />
+<script src="libs/datatables-binding-0.17/datatables.js"></script>
+<link href="libs/dt-core-1.10.20/css/jquery.dataTables.min.css" rel="stylesheet" />
+<link href="libs/dt-core-1.10.20/css/jquery.dataTables.extra.css" rel="stylesheet" />
+<script src="libs/dt-core-1.10.20/js/jquery.dataTables.min.js"></script>
+<link href="libs/nouislider-7.0.10/jquery.nouislider.min.css" rel="stylesheet" />
+<script src="libs/nouislider-7.0.10/jquery.nouislider.min.js"></script>
+<link href="libs/selectize-0.12.0/selectize.bootstrap3.css" rel="stylesheet" />
+<script src="libs/selectize-0.12.0/selectize.min.js"></script>
+<link href="libs/crosstalk-1.1.1/css/crosstalk.css" rel="stylesheet" />
+<script src="libs/crosstalk-1.1.1/js/crosstalk.min.js"></script>
+<script src="libs/plotly-binding-4.10.0/plotly.js"></script>
+<script src="libs/typedarray-0.1/typedarray.min.js"></script>
+<link href="libs/plotly-htmlwidgets-css-2.5.1/plotly-htmlwidgets.css" rel="stylesheet" />
+<script src="libs/plotly-main-2.5.1/plotly-latest.min.js"></script>
+<link href="libs/leaflet-1.3.1/leaflet.css" rel="stylesheet" />
+<script src="libs/leaflet-1.3.1/leaflet.js"></script>
+<link href="libs/leafletfix-1.0.0/leafletfix.css" rel="stylesheet" />
+<script src="libs/proj4-2.6.2/proj4.min.js"></script>
+<script src="libs/Proj4Leaflet-1.0.1/proj4leaflet.js"></script>
+<link href="libs/rstudio_leaflet-1.3.1/rstudio_leaflet.css" rel="stylesheet" />
+<script src="libs/leaflet-binding-2.0.4.1/leaflet.js"></script>
+
+
+<style type="text/css">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+</style>
+
+<style type="text/css">
+/* Used with Pandoc 2.11+ new --citeproc when CSL is used */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}
+</style>
+
+<link rel="stylesheet" href="style.css" type="text/css" />
+</head>
+
+<body>
+
+
+
+  <div class="book without-animation with-summary font-size-2 font-family-1" data-basepath=".">
+
+    <div class="book-summary">
+      <nav role="navigation">
+
+<ul class="summary">
+<li><a href="./">Taliban Project</a></li>
+
+<li class="divider"></li>
+<li class="chapter" data-level="" data-path="index.html"><a href="index.html"><i class="fa fa-check"></i>Overview</a>
+<ul>
+<li class="chapter" data-level="" data-path="index.html"><a href="index.html#software"><i class="fa fa-check"></i>Software</a></li>
+<li class="chapter" data-level="" data-path="index.html"><a href="index.html#structure"><i class="fa fa-check"></i>Structure</a></li>
+<li class="chapter" data-level="" data-path="index.html"><a href="index.html#how-to-read-the-notebook"><i class="fa fa-check"></i>How to read the notebook</a></li>
+</ul></li>
+<li class="part"><span><b>I New York Times</b></span></li>
+<li class="chapter" data-level="1" data-path="scraping-news-articles-with-new-york-times-api.html"><a href="scraping-news-articles-with-new-york-times-api.html"><i class="fa fa-check"></i><b>1</b> Scraping News Articles with New York Times API</a></li>
+<li class="chapter" data-level="2" data-path="cleaning-the-data.html"><a href="cleaning-the-data.html"><i class="fa fa-check"></i><b>2</b> Cleaning The Data</a></li>
+<li class="chapter" data-level="3" data-path="scrape-bread-text-of-articles.html"><a href="scrape-bread-text-of-articles.html"><i class="fa fa-check"></i><b>3</b> Scrape bread text of articles</a>
+<ul>
+<li class="chapter" data-level="3.1" data-path="scrape-bread-text-of-articles.html"><a href="scrape-bread-text-of-articles.html#scraping-in-python"><i class="fa fa-check"></i><b>3.1</b> Scraping in Python</a></li>
+<li class="chapter" data-level="3.2" data-path="scrape-bread-text-of-articles.html"><a href="scrape-bread-text-of-articles.html#inspecting-the-bread-text"><i class="fa fa-check"></i><b>3.2</b> Inspecting the bread text</a></li>
+</ul></li>
+<li class="part"><span><b>II The Guardian</b></span></li>
+<li class="chapter" data-level="4" data-path="scraping-articles-form-the-guardian.html"><a href="scraping-articles-form-the-guardian.html"><i class="fa fa-check"></i><b>4</b> Scraping articles form the Guardian</a></li>
+<li class="chapter" data-level="5" data-path="cleaning-the-data-1.html"><a href="cleaning-the-data-1.html"><i class="fa fa-check"></i><b>5</b> Cleaning the Data</a></li>
+<li class="chapter" data-level="6" data-path="scrape-bread-text-of-articles-1.html"><a href="scrape-bread-text-of-articles-1.html"><i class="fa fa-check"></i><b>6</b> Scrape bread text of articles</a>
+<ul>
+<li class="chapter" data-level="6.1" data-path="scrape-bread-text-of-articles-1.html"><a href="scrape-bread-text-of-articles-1.html#scraping-in-python-1"><i class="fa fa-check"></i><b>6.1</b> Scraping in Python</a></li>
+<li class="chapter" data-level="6.2" data-path="scrape-bread-text-of-articles-1.html"><a href="scrape-bread-text-of-articles-1.html#inspecting-the-bread-text-1"><i class="fa fa-check"></i><b>6.2</b> Inspecting the bread text</a></li>
+</ul></li>
+<li class="part"><span><b>III Preprocess breadtext</b></span></li>
+<li class="chapter" data-level="7" data-path="preprocess-breadtext-for-both-datasets.html"><a href="preprocess-breadtext-for-both-datasets.html"><i class="fa fa-check"></i><b>7</b> Preprocess Breadtext for both Datasets</a></li>
+<li class="part"><span><b>IV Named Entity recognition (NER)</b></span></li>
+<li class="chapter" data-level="" data-path="overview-1.html"><a href="overview-1.html"><i class="fa fa-check"></i>Overview</a>
+<ul>
+<li class="chapter" data-level="" data-path="overview-1.html"><a href="overview-1.html#structure-1"><i class="fa fa-check"></i>Structure</a></li>
+</ul></li>
+<li class="chapter" data-level="8" data-path="extracting-ners.html"><a href="extracting-ners.html"><i class="fa fa-check"></i><b>8</b> Extracting NER’s</a></li>
+<li class="chapter" data-level="9" data-path="maps-vizualisations.html"><a href="maps-vizualisations.html"><i class="fa fa-check"></i><b>9</b> Maps vizualisations</a>
+<ul>
+<li class="chapter" data-level="9.1" data-path="maps-vizualisations.html"><a href="maps-vizualisations.html#preparing-the-data"><i class="fa fa-check"></i><b>9.1</b> Preparing the data</a>
+<ul>
+<li class="chapter" data-level="9.1.1" data-path="maps-vizualisations.html"><a href="maps-vizualisations.html#renaming-countries"><i class="fa fa-check"></i><b>9.1.1</b> Renaming Countries</a></li>
+<li class="chapter" data-level="9.1.2" data-path="maps-vizualisations.html"><a href="maps-vizualisations.html#every-country-gets-a-row-for-every-date"><i class="fa fa-check"></i><b>9.1.2</b> Every country gets a row for every date</a></li>
+<li class="chapter" data-level="9.1.3" data-path="maps-vizualisations.html"><a href="maps-vizualisations.html#making-a-unique-dataset-for-plotly-and-shiny-respectively"><i class="fa fa-check"></i><b>9.1.3</b> Making a unique dataset for Plotly and Shiny respectively</a></li>
+<li class="chapter" data-level="9.1.4" data-path="maps-vizualisations.html"><a href="maps-vizualisations.html#making-a-penalized-count"><i class="fa fa-check"></i><b>9.1.4</b> Making a penalized count</a></li>
+<li class="chapter" data-level="9.1.5" data-path="maps-vizualisations.html"><a href="maps-vizualisations.html#binsize"><i class="fa fa-check"></i><b>9.1.5</b> Setting up the binsize</a></li>
+<li class="chapter" data-level="9.1.6" data-path="maps-vizualisations.html"><a href="maps-vizualisations.html#fixing-the-legend-scales-to-absolute-values."><i class="fa fa-check"></i><b>9.1.6</b> Fixing the legend scales to absolute values.</a></li>
+<li class="chapter" data-level="9.1.7" data-path="maps-vizualisations.html"><a href="maps-vizualisations.html#making-a-dataframe-with-contrasts"><i class="fa fa-check"></i><b>9.1.7</b> Making a dataframe with contrasts</a></li>
+</ul></li>
+<li class="chapter" data-level="9.2" data-path="maps-vizualisations.html"><a href="maps-vizualisations.html#plotly-maps"><i class="fa fa-check"></i><b>9.2</b> Plotly Maps</a></li>
+<li class="chapter" data-level="9.3" data-path="maps-vizualisations.html"><a href="maps-vizualisations.html#shiny-app"><i class="fa fa-check"></i><b>9.3</b> Shiny App</a></li>
+<li class="chapter" data-level="9.4" data-path="maps-vizualisations.html"><a href="maps-vizualisations.html#popcircle"><i class="fa fa-check"></i><b>9.4</b> Popcircle</a>
+<ul>
+<li class="chapter" data-level="9.4.1" data-path="maps-vizualisations.html"><a href="maps-vizualisations.html#new-york-times"><i class="fa fa-check"></i><b>9.4.1</b> New York Times</a></li>
+<li class="chapter" data-level="9.4.2" data-path="maps-vizualisations.html"><a href="maps-vizualisations.html#the-guardian"><i class="fa fa-check"></i><b>9.4.2</b> The Guardian</a></li>
+</ul></li>
+</ul></li>
+<li class="chapter" data-level="10" data-path="persons-vizualisation.html"><a href="persons-vizualisation.html"><i class="fa fa-check"></i><b>10</b> Persons Vizualisation</a>
+<ul>
+<li class="chapter" data-level="10.1" data-path="persons-vizualisation.html"><a href="persons-vizualisation.html#standardize-to-hits-pr.-article-and-grouping-by-month"><i class="fa fa-check"></i><b>10.1</b> Standardize to hits pr. article and grouping by month</a></li>
+<li class="chapter" data-level="10.2" data-path="persons-vizualisation.html"><a href="persons-vizualisation.html#color-palettes"><i class="fa fa-check"></i><b>10.2</b> Color Palettes</a></li>
+<li class="chapter" data-level="10.3" data-path="persons-vizualisation.html"><a href="persons-vizualisation.html#united-states-presidents"><i class="fa fa-check"></i><b>10.3</b> United States Presidents</a>
+<ul>
+<li class="chapter" data-level="10.3.1" data-path="persons-vizualisation.html"><a href="persons-vizualisation.html#summary-plot"><i class="fa fa-check"></i><b>10.3.1</b> Summary plot</a></li>
+<li class="chapter" data-level="10.3.2" data-path="persons-vizualisation.html"><a href="persons-vizualisation.html#george-w.-bush"><i class="fa fa-check"></i><b>10.3.2</b> George W. Bush</a></li>
+<li class="chapter" data-level="10.3.3" data-path="persons-vizualisation.html"><a href="persons-vizualisation.html#barack-obama"><i class="fa fa-check"></i><b>10.3.3</b> Barack Obama</a></li>
+<li class="chapter" data-level="10.3.4" data-path="persons-vizualisation.html"><a href="persons-vizualisation.html#donald-trump"><i class="fa fa-check"></i><b>10.3.4</b> Donald Trump</a></li>
+<li class="chapter" data-level="10.3.5" data-path="persons-vizualisation.html"><a href="persons-vizualisation.html#combined-plots"><i class="fa fa-check"></i><b>10.3.5</b> Combined Plots</a></li>
+</ul></li>
+<li class="chapter" data-level="10.4" data-path="persons-vizualisation.html"><a href="persons-vizualisation.html#british-prime-ministers"><i class="fa fa-check"></i><b>10.4</b> British Prime Ministers</a>
+<ul>
+<li class="chapter" data-level="10.4.1" data-path="persons-vizualisation.html"><a href="persons-vizualisation.html#summary-plot-1"><i class="fa fa-check"></i><b>10.4.1</b> Summary plot</a></li>
+<li class="chapter" data-level="10.4.2" data-path="persons-vizualisation.html"><a href="persons-vizualisation.html#tony-blair"><i class="fa fa-check"></i><b>10.4.2</b> Tony Blair</a></li>
+<li class="chapter" data-level="10.4.3" data-path="persons-vizualisation.html"><a href="persons-vizualisation.html#david-cameron"><i class="fa fa-check"></i><b>10.4.3</b> David Cameron</a></li>
+<li class="chapter" data-level="10.4.4" data-path="persons-vizualisation.html"><a href="persons-vizualisation.html#boris-johnson"><i class="fa fa-check"></i><b>10.4.4</b> Boris Johnson</a></li>
+</ul></li>
+<li class="chapter" data-level="10.5" data-path="persons-vizualisation.html"><a href="persons-vizualisation.html#afghanistan-presidents"><i class="fa fa-check"></i><b>10.5</b> Afghanistan Presidents</a>
+<ul>
+<li class="chapter" data-level="10.5.1" data-path="persons-vizualisation.html"><a href="persons-vizualisation.html#summary-plot-2"><i class="fa fa-check"></i><b>10.5.1</b> Summary plot</a></li>
+<li class="chapter" data-level="10.5.2" data-path="persons-vizualisation.html"><a href="persons-vizualisation.html#hamid-karzai"><i class="fa fa-check"></i><b>10.5.2</b> Hamid Karzai</a></li>
+<li class="chapter" data-level="10.5.3" data-path="persons-vizualisation.html"><a href="persons-vizualisation.html#ashraf-ghani"><i class="fa fa-check"></i><b>10.5.3</b> Ashraf Ghani</a></li>
+<li class="chapter" data-level="10.5.4" data-path="persons-vizualisation.html"><a href="persons-vizualisation.html#combined-plots-1"><i class="fa fa-check"></i><b>10.5.4</b> Combined Plots</a></li>
+</ul></li>
+<li class="chapter" data-level="10.6" data-path="persons-vizualisation.html"><a href="persons-vizualisation.html#other-persons"><i class="fa fa-check"></i><b>10.6</b> Other Persons</a>
+<ul>
+<li class="chapter" data-level="10.6.1" data-path="persons-vizualisation.html"><a href="persons-vizualisation.html#summary-plot-3"><i class="fa fa-check"></i><b>10.6.1</b> Summary plot</a></li>
+<li class="chapter" data-level="10.6.2" data-path="persons-vizualisation.html"><a href="persons-vizualisation.html#osama-bin-laden"><i class="fa fa-check"></i><b>10.6.2</b> Osama bin Laden</a></li>
+<li class="chapter" data-level="10.6.3" data-path="persons-vizualisation.html"><a href="persons-vizualisation.html#saddam-hussein"><i class="fa fa-check"></i><b>10.6.3</b> Saddam Hussein</a></li>
+<li class="chapter" data-level="10.6.4" data-path="persons-vizualisation.html"><a href="persons-vizualisation.html#combined-plots-2"><i class="fa fa-check"></i><b>10.6.4</b> Combined Plots</a></li>
+</ul></li>
+</ul></li>
+<li class="chapter" data-level="11" data-path="organisations-vizualisations.html"><a href="organisations-vizualisations.html"><i class="fa fa-check"></i><b>11</b> Organisations Vizualisations</a>
+<ul>
+<li class="chapter" data-level="11.1" data-path="organisations-vizualisations.html"><a href="organisations-vizualisations.html#standardize-names-of-organisations"><i class="fa fa-check"></i><b>11.1</b> Standardize names of organisations</a></li>
+<li class="chapter" data-level="11.2" data-path="organisations-vizualisations.html"><a href="organisations-vizualisations.html#standardize-to-hits-pr.-article-and-grouping-by-month-1"><i class="fa fa-check"></i><b>11.2</b> Standardize to hits pr. article and grouping by month</a></li>
+<li class="chapter" data-level="11.3" data-path="organisations-vizualisations.html"><a href="organisations-vizualisations.html#color-palettes-1"><i class="fa fa-check"></i><b>11.3</b> Color Palettes</a></li>
+<li class="chapter" data-level="11.4" data-path="organisations-vizualisations.html"><a href="organisations-vizualisations.html#summary-plot-4"><i class="fa fa-check"></i><b>11.4</b> Summary plot</a></li>
+<li class="chapter" data-level="11.5" data-path="organisations-vizualisations.html"><a href="organisations-vizualisations.html#nato"><i class="fa fa-check"></i><b>11.5</b> NATO</a></li>
+<li class="chapter" data-level="11.6" data-path="organisations-vizualisations.html"><a href="organisations-vizualisations.html#taliban"><i class="fa fa-check"></i><b>11.6</b> Taliban</a></li>
+<li class="chapter" data-level="11.7" data-path="organisations-vizualisations.html"><a href="organisations-vizualisations.html#al-qaeda"><i class="fa fa-check"></i><b>11.7</b> Al Qaeda</a></li>
+<li class="chapter" data-level="11.8" data-path="organisations-vizualisations.html"><a href="organisations-vizualisations.html#hamas"><i class="fa fa-check"></i><b>11.8</b> Hamas</a></li>
+<li class="chapter" data-level="11.9" data-path="organisations-vizualisations.html"><a href="organisations-vizualisations.html#hezbollah"><i class="fa fa-check"></i><b>11.9</b> Hezbollah</a></li>
+<li class="chapter" data-level="11.10" data-path="organisations-vizualisations.html"><a href="organisations-vizualisations.html#combined-plots-for-all-key-organisations"><i class="fa fa-check"></i><b>11.10</b> Combined Plots for all Key Organisations</a>
+<ul>
+<li class="chapter" data-level="11.10.1" data-path="organisations-vizualisations.html"><a href="organisations-vizualisations.html#new-york-times-5"><i class="fa fa-check"></i><b>11.10.1</b> New York Times</a></li>
+<li class="chapter" data-level="11.10.2" data-path="organisations-vizualisations.html"><a href="organisations-vizualisations.html#the-guardian-5"><i class="fa fa-check"></i><b>11.10.2</b> The Guardian</a></li>
+</ul></li>
+</ul></li>
+<li class="chapter" data-level="12" data-path="nouns-verbs-and-adjectives-vizualisation.html"><a href="nouns-verbs-and-adjectives-vizualisation.html"><i class="fa fa-check"></i><b>12</b> Nouns, Verbs and Adjectives Vizualisation</a>
+<ul>
+<li class="chapter" data-level="12.1" data-path="nouns-verbs-and-adjectives-vizualisation.html"><a href="nouns-verbs-and-adjectives-vizualisation.html#color-palettes-2"><i class="fa fa-check"></i><b>12.1</b> Color Palettes</a></li>
+<li class="chapter" data-level="12.2" data-path="nouns-verbs-and-adjectives-vizualisation.html"><a href="nouns-verbs-and-adjectives-vizualisation.html#top-5-nouns"><i class="fa fa-check"></i><b>12.2</b> Top 5 Nouns</a></li>
+<li class="chapter" data-level="12.3" data-path="nouns-verbs-and-adjectives-vizualisation.html"><a href="nouns-verbs-and-adjectives-vizualisation.html#top-5-verbs"><i class="fa fa-check"></i><b>12.3</b> Top 5 Verbs</a></li>
+<li class="chapter" data-level="12.4" data-path="nouns-verbs-and-adjectives-vizualisation.html"><a href="nouns-verbs-and-adjectives-vizualisation.html#top-5-adjectives"><i class="fa fa-check"></i><b>12.4</b> Top 5 Adjectives</a></li>
+</ul></li>
+<li class="part"><span><b>V Sentiment Analysis</b></span></li>
+<li class="chapter" data-level="" data-path="overview-2.html"><a href="overview-2.html"><i class="fa fa-check"></i>Overview</a></li>
+<li class="chapter" data-level="13" data-path="sentiment-analysis.html"><a href="sentiment-analysis.html"><i class="fa fa-check"></i><b>13</b> Sentiment Analysis</a></li>
+<li class="chapter" data-level="14" data-path="sentiment-vizualisations.html"><a href="sentiment-vizualisations.html"><i class="fa fa-check"></i><b>14</b> Sentiment Vizualisations</a>
+<ul>
+<li class="chapter" data-level="14.1" data-path="sentiment-vizualisations.html"><a href="sentiment-vizualisations.html#data-wrangling"><i class="fa fa-check"></i><b>14.1</b> Data wrangling</a></li>
+<li class="chapter" data-level="14.2" data-path="sentiment-vizualisations.html"><a href="sentiment-vizualisations.html#color-palettes-3"><i class="fa fa-check"></i><b>14.2</b> Color Palettes</a></li>
+<li class="chapter" data-level="14.3" data-path="sentiment-vizualisations.html"><a href="sentiment-vizualisations.html#polarity"><i class="fa fa-check"></i><b>14.3</b> Polarity</a>
+<ul>
+<li class="chapter" data-level="14.3.1" data-path="sentiment-vizualisations.html"><a href="sentiment-vizualisations.html#summary-stats"><i class="fa fa-check"></i><b>14.3.1</b> Summary stats</a></li>
+<li class="chapter" data-level="14.3.2" data-path="sentiment-vizualisations.html"><a href="sentiment-vizualisations.html#timeline"><i class="fa fa-check"></i><b>14.3.2</b> Timeline</a></li>
+</ul></li>
+<li class="chapter" data-level="14.4" data-path="sentiment-vizualisations.html"><a href="sentiment-vizualisations.html#subjectivity"><i class="fa fa-check"></i><b>14.4</b> Subjectivity</a>
+<ul>
+<li class="chapter" data-level="14.4.1" data-path="sentiment-vizualisations.html"><a href="sentiment-vizualisations.html#summary-stats-1"><i class="fa fa-check"></i><b>14.4.1</b> Summary stats</a></li>
+<li class="chapter" data-level="14.4.2" data-path="sentiment-vizualisations.html"><a href="sentiment-vizualisations.html#timeline-1"><i class="fa fa-check"></i><b>14.4.2</b> Timeline</a></li>
+</ul></li>
+</ul></li>
+<li class="part"><span><b>VI LDA Topic Modelling</b></span></li>
+<li class="chapter" data-level="" data-path="overview-3.html"><a href="overview-3.html"><i class="fa fa-check"></i>Overview</a>
+<ul>
+<li class="chapter" data-level="" data-path="overview-3.html"><a href="overview-3.html#what-is-an-lda-topic-model"><i class="fa fa-check"></i>What is an LDA topic model?</a></li>
+<li class="chapter" data-level="" data-path="overview-3.html"><a href="overview-3.html#example"><i class="fa fa-check"></i>Example</a></li>
+<li class="chapter" data-level="" data-path="overview-3.html"><a href="overview-3.html#the-goal-of-lda-topic-model"><i class="fa fa-check"></i>The goal of LDA topic model</a></li>
+</ul></li>
+<li class="chapter" data-level="15" data-path="lda-topic-modelling.html"><a href="lda-topic-modelling.html"><i class="fa fa-check"></i><b>15</b> LDA Topic Modelling</a>
+<ul>
+<li class="chapter" data-level="15.1" data-path="lda-topic-modelling.html"><a href="lda-topic-modelling.html#packages-and-data"><i class="fa fa-check"></i><b>15.1</b> Packages and Data</a></li>
+<li class="chapter" data-level="15.2" data-path="lda-topic-modelling.html"><a href="lda-topic-modelling.html#preprocessing"><i class="fa fa-check"></i><b>15.2</b> Preprocessing</a></li>
+<li class="chapter" data-level="15.3" data-path="lda-topic-modelling.html"><a href="lda-topic-modelling.html#bigrams-and-trigrams"><i class="fa fa-check"></i><b>15.3</b> Bigrams and Trigrams</a></li>
+<li class="chapter" data-level="15.4" data-path="lda-topic-modelling.html"><a href="lda-topic-modelling.html#tf-idf-removal"><i class="fa fa-check"></i><b>15.4</b> TF-IDF Removal</a></li>
+<li class="chapter" data-level="15.5" data-path="lda-topic-modelling.html"><a href="lda-topic-modelling.html#base-topic-model"><i class="fa fa-check"></i><b>15.5</b> Base topic model</a></li>
+<li class="chapter" data-level="15.6" data-path="lda-topic-modelling.html"><a href="lda-topic-modelling.html#selecting-the-number-of-topics-based-on-coherence-score"><i class="fa fa-check"></i><b>15.6</b> Selecting the number of topics based on coherence score</a>
+<ul>
+<li class="chapter" data-level="15.6.1" data-path="lda-topic-modelling.html"><a href="lda-topic-modelling.html#selecting-number-of-topics-for-new-york-times"><i class="fa fa-check"></i><b>15.6.1</b> Selecting number of topics for New York Times</a></li>
+<li class="chapter" data-level="15.6.2" data-path="lda-topic-modelling.html"><a href="lda-topic-modelling.html#selecting-number-of-topics-for-the-guardian"><i class="fa fa-check"></i><b>15.6.2</b> Selecting number of topics for The Guardian</a></li>
+</ul></li>
+<li class="chapter" data-level="15.7" data-path="lda-topic-modelling.html"><a href="lda-topic-modelling.html#building-the-topic-models"><i class="fa fa-check"></i><b>15.7</b> Building the topic models</a>
+<ul>
+<li class="chapter" data-level="15.7.1" data-path="lda-topic-modelling.html"><a href="lda-topic-modelling.html#new-york-times-topic-model"><i class="fa fa-check"></i><b>15.7.1</b> New York Times topic model</a></li>
+<li class="chapter" data-level="15.7.2" data-path="lda-topic-modelling.html"><a href="lda-topic-modelling.html#the-guardian-topic-model"><i class="fa fa-check"></i><b>15.7.2</b> The Guardian topic model</a></li>
+</ul></li>
+<li class="chapter" data-level="15.8" data-path="lda-topic-modelling.html"><a href="lda-topic-modelling.html#assigning-one-topic-to-each-article"><i class="fa fa-check"></i><b>15.8</b> Assigning one topic to each article</a>
+<ul>
+<li class="chapter" data-level="15.8.1" data-path="lda-topic-modelling.html"><a href="lda-topic-modelling.html#evaluating-the-assignment-of-one-article"><i class="fa fa-check"></i><b>15.8.1</b> Evaluating the assignment of one article</a></li>
+</ul></li>
+</ul></li>
+<li class="chapter" data-level="16" data-path="topic-model-interpretation-and-vizualisation.html"><a href="topic-model-interpretation-and-vizualisation.html"><i class="fa fa-check"></i><b>16</b> Topic Model Interpretation and Vizualisation</a>
+<ul>
+<li class="chapter" data-level="16.1" data-path="topic-model-interpretation-and-vizualisation.html"><a href="topic-model-interpretation-and-vizualisation.html#plotting-topic-prevalence"><i class="fa fa-check"></i><b>16.1</b> Plotting topic prevalence</a></li>
+<li class="chapter" data-level="16.2" data-path="topic-model-interpretation-and-vizualisation.html"><a href="topic-model-interpretation-and-vizualisation.html#plotting-topic-prevalence-over-time"><i class="fa fa-check"></i><b>16.2</b> Plotting topic prevalence over time</a>
+<ul>
+<li class="chapter" data-level="16.2.1" data-path="topic-model-interpretation-and-vizualisation.html"><a href="topic-model-interpretation-and-vizualisation.html#data-wrangling-1"><i class="fa fa-check"></i><b>16.2.1</b> Data Wrangling</a></li>
+<li class="chapter" data-level="16.2.2" data-path="topic-model-interpretation-and-vizualisation.html"><a href="topic-model-interpretation-and-vizualisation.html#plots"><i class="fa fa-check"></i><b>16.2.2</b> Plots</a></li>
+</ul></li>
+<li class="chapter" data-level="16.3" data-path="topic-model-interpretation-and-vizualisation.html"><a href="topic-model-interpretation-and-vizualisation.html#does-topics-differ-in-polarity-and-subjectivity"><i class="fa fa-check"></i><b>16.3</b> Does topics differ in polarity and subjectivity?</a>
+<ul>
+<li class="chapter" data-level="16.3.1" data-path="topic-model-interpretation-and-vizualisation.html"><a href="topic-model-interpretation-and-vizualisation.html#polarity-1"><i class="fa fa-check"></i><b>16.3.1</b> Polarity</a></li>
+<li class="chapter" data-level="16.3.2" data-path="topic-model-interpretation-and-vizualisation.html"><a href="topic-model-interpretation-and-vizualisation.html#subjectivity-1"><i class="fa fa-check"></i><b>16.3.2</b> Subjectivity</a></li>
+</ul></li>
+</ul></li>
+<li class="part"><span><b>VII Miscellaneous</b></span></li>
+<li class="chapter" data-level="17" data-path="miscellaneous-plots.html"><a href="miscellaneous-plots.html"><i class="fa fa-check"></i><b>17</b> Miscellaneous Plots</a></li>
+<li class="chapter" data-level="18" data-path="gender-dataset-for-further-analysis.html"><a href="gender-dataset-for-further-analysis.html"><i class="fa fa-check"></i><b>18</b> Gender Dataset for further analysis</a>
+<ul>
+<li class="chapter" data-level="18.1" data-path="gender-dataset-for-further-analysis.html"><a href="gender-dataset-for-further-analysis.html#dataset-with-authors"><i class="fa fa-check"></i><b>18.1</b> Dataset with authors</a></li>
+<li class="chapter" data-level="18.2" data-path="gender-dataset-for-further-analysis.html"><a href="gender-dataset-for-further-analysis.html#comparing-the-datasets"><i class="fa fa-check"></i><b>18.2</b> Comparing the datasets</a></li>
+<li class="chapter" data-level="18.3" data-path="gender-dataset-for-further-analysis.html"><a href="gender-dataset-for-further-analysis.html#adding-gender-information-to-nyt_aut"><i class="fa fa-check"></i><b>18.3</b> Adding gender information to <code>NYT_aut</code></a></li>
+</ul></li>
+<li class="part"><span><b>VIII References</b></span></li>
+<li class="chapter" data-level="19" data-path="references.html"><a href="references.html"><i class="fa fa-check"></i><b>19</b> References</a></li>
+<li class="divider"></li>
+<li><a href="https://github.com/rstudio/bookdown" target="blank">See Github Repo</a></li>
+
+</ul>
+
+      </nav>
+    </div>
+
+    <div class="book-body">
+      <div class="body-inner">
+        <div class="book-header" role="navigation">
+          <h1>
+            <i class="fa fa-circle-o-notch fa-spin"></i><a href="./">Taliban Project</a>
+          </h1>
+        </div>
+
+        <div class="page-wrapper" tabindex="-1" role="main">
+          <div class="page-inner">
+
+            <section class="normal" id="section-">
+<div id="scrape-bread-text-of-articles-1" class="section level1" number="6">
+<h1><span class="header-section-number">Chapter 6</span> Scrape bread text of articles</h1>
+<style>
+div.green { background-color:#93c47d; border-radius: 5px; padding: 20px;}
+</style>
+<div class="green">
+<p>This chapter is written in Python. To see the original file go to the folder python_scripts/.</p>
+</div>
+<style>
+div.yellow { background-color:#ffd966; border-radius: 5px; padding: 20px;}
+</style>
+<div class="yellow">
+<p>Note: This chapter is very similar to chapter 6. Here all the steps are just adjusted to the fit the dataset from The Guardian-</p>
+</div>
+<div id="scraping-in-python-1" class="section level2" number="6.1">
+<h2><span class="header-section-number">6.1</span> Scraping in Python</h2>
+<p>The cleaned dataframe <code>df_guardian</code> contains a coloumn called <code>url</code>. Clicking on this url
+leads us to the article on The Guardian. Now we are going to move into Python
+to scrape the breadtext from the URL’s. There is a package called <code>BeautifulSoup</code>
+which makes this less painful to do. That is why i use Python here.</p>
+<p>The chunk below loads packages and the data.</p>
+<div class="sourceCode" id="cb35"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb35-1"><a href="scrape-bread-text-of-articles-1.html#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> bs4 <span class="im">import</span> BeautifulSoup</span>
+<span id="cb35-2"><a href="scrape-bread-text-of-articles-1.html#cb35-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> requests</span>
+<span id="cb35-3"><a href="scrape-bread-text-of-articles-1.html#cb35-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb35-4"><a href="scrape-bread-text-of-articles-1.html#cb35-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-5"><a href="scrape-bread-text-of-articles-1.html#cb35-5" aria-hidden="true" tabindex="-1"></a><span class="co">#importing the cleaned data</span></span>
+<span id="cb35-6"><a href="scrape-bread-text-of-articles-1.html#cb35-6" aria-hidden="true" tabindex="-1"></a>df_guardian <span class="op">=</span> pd.read_csv(<span class="st">&quot;data/guardian/data_additional/guardian_clean_cp2.csv&quot;</span>)</span></code></pre></div>
+<p>The chunk below is where the work takes place. It first sets up variables for the iteration. The for-loop iterates through all the url’s in the dataframe, makes a “soup” which is basically the html for that url. Then there is something unfortunate. The bread texts of the articles does not appear under the same class as was the case with the articles from NYT. Instead the bread texts appear under multiple classes. I define these classes, loop through them to find the correct one and insert the correct class in the function <code>find_all</code>.Then it appends the bread text to a list. Lastly it writes a new column to the dataframe containing the bread text for each article and overwrites the old dataframe.</p>
+<div class="sourceCode" id="cb36"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb36-1"><a href="scrape-bread-text-of-articles-1.html#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="co">#making an empty list where the breadtext from all articles can be appended to</span></span>
+<span id="cb36-2"><a href="scrape-bread-text-of-articles-1.html#cb36-2" aria-hidden="true" tabindex="-1"></a>all_bread <span class="op">=</span> []</span>
+<span id="cb36-3"><a href="scrape-bread-text-of-articles-1.html#cb36-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-4"><a href="scrape-bread-text-of-articles-1.html#cb36-4" aria-hidden="true" tabindex="-1"></a><span class="co">#making an index to print in the for-loop</span></span>
+<span id="cb36-5"><a href="scrape-bread-text-of-articles-1.html#cb36-5" aria-hidden="true" tabindex="-1"></a>i <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb36-6"><a href="scrape-bread-text-of-articles-1.html#cb36-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-7"><a href="scrape-bread-text-of-articles-1.html#cb36-7" aria-hidden="true" tabindex="-1"></a><span class="co">#interate through each url in df, scrape the breadtext and appending it to the list all_bread</span></span>
+<span id="cb36-8"><a href="scrape-bread-text-of-articles-1.html#cb36-8" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> url <span class="kw">in</span> df_guardian[<span class="st">&#39;url&#39;</span>]:</span>
+<span id="cb36-9"><a href="scrape-bread-text-of-articles-1.html#cb36-9" aria-hidden="true" tabindex="-1"></a>    <span class="co"># setting up empty string</span></span>
+<span id="cb36-10"><a href="scrape-bread-text-of-articles-1.html#cb36-10" aria-hidden="true" tabindex="-1"></a>    bread_article <span class="op">=</span> <span class="st">&quot;&quot;</span></span>
+<span id="cb36-11"><a href="scrape-bread-text-of-articles-1.html#cb36-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-12"><a href="scrape-bread-text-of-articles-1.html#cb36-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">#sending request for url</span></span>
+<span id="cb36-13"><a href="scrape-bread-text-of-articles-1.html#cb36-13" aria-hidden="true" tabindex="-1"></a>    page <span class="op">=</span> requests.get(url)</span>
+<span id="cb36-14"><a href="scrape-bread-text-of-articles-1.html#cb36-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-15"><a href="scrape-bread-text-of-articles-1.html#cb36-15" aria-hidden="true" tabindex="-1"></a>    <span class="co">#creating soup (lingo from the package beautifulsoup)</span></span>
+<span id="cb36-16"><a href="scrape-bread-text-of-articles-1.html#cb36-16" aria-hidden="true" tabindex="-1"></a>    soup <span class="op">=</span> BeautifulSoup(page.text, <span class="st">&quot;lxml&quot;</span>)</span>
+<span id="cb36-17"><a href="scrape-bread-text-of-articles-1.html#cb36-17" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb36-18"><a href="scrape-bread-text-of-articles-1.html#cb36-18" aria-hidden="true" tabindex="-1"></a>    <span class="co">#breadtext appears under more than one tag. So here we define these tags.</span></span>
+<span id="cb36-19"><a href="scrape-bread-text-of-articles-1.html#cb36-19" aria-hidden="true" tabindex="-1"></a>    tags <span class="op">=</span> [<span class="st">&#39;dcr-o5gy41&#39;</span>,<span class="st">&#39;dcr-t0ikv9&#39;</span>,<span class="st">&#39;dcr-bixwrd&#39;</span>]</span>
+<span id="cb36-20"><a href="scrape-bread-text-of-articles-1.html#cb36-20" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb36-21"><a href="scrape-bread-text-of-articles-1.html#cb36-21" aria-hidden="true" tabindex="-1"></a>    <span class="co">#specify the tag where the bread text is.</span></span>
+<span id="cb36-22"><a href="scrape-bread-text-of-articles-1.html#cb36-22" aria-hidden="true" tabindex="-1"></a>    soup <span class="op">=</span> <span class="bu">str</span>(soup)</span>
+<span id="cb36-23"><a href="scrape-bread-text-of-articles-1.html#cb36-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> tag <span class="kw">in</span> tags: </span>
+<span id="cb36-24"><a href="scrape-bread-text-of-articles-1.html#cb36-24" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> tag <span class="kw">in</span> soup:</span>
+<span id="cb36-25"><a href="scrape-bread-text-of-articles-1.html#cb36-25" aria-hidden="true" tabindex="-1"></a>            correct_tag <span class="op">=</span> tag</span>
+<span id="cb36-26"><a href="scrape-bread-text-of-articles-1.html#cb36-26" aria-hidden="true" tabindex="-1"></a>            <span class="bu">print</span>(correct_tag)</span>
+<span id="cb36-27"><a href="scrape-bread-text-of-articles-1.html#cb36-27" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb36-28"><a href="scrape-bread-text-of-articles-1.html#cb36-28" aria-hidden="true" tabindex="-1"></a>    <span class="co">#defining soup again</span></span>
+<span id="cb36-29"><a href="scrape-bread-text-of-articles-1.html#cb36-29" aria-hidden="true" tabindex="-1"></a>    soup <span class="op">=</span> BeautifulSoup(page.text, <span class="st">&quot;lxml&quot;</span>)    </span>
+<span id="cb36-30"><a href="scrape-bread-text-of-articles-1.html#cb36-30" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb36-31"><a href="scrape-bread-text-of-articles-1.html#cb36-31" aria-hidden="true" tabindex="-1"></a>    <span class="co">#finding the breadtext using beautifulsoup and the correct tag</span></span>
+<span id="cb36-32"><a href="scrape-bread-text-of-articles-1.html#cb36-32" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> pre_bread <span class="kw">in</span> soup.find_all(<span class="st">&quot;p&quot;</span>, class_<span class="op">=</span>correct_tag):</span>
+<span id="cb36-33"><a href="scrape-bread-text-of-articles-1.html#cb36-33" aria-hidden="true" tabindex="-1"></a>        bread <span class="op">=</span> pre_bread.text</span>
+<span id="cb36-34"><a href="scrape-bread-text-of-articles-1.html#cb36-34" aria-hidden="true" tabindex="-1"></a>        bread_article <span class="op">+=</span> <span class="st">&quot; &quot;</span> <span class="op">+</span> bread</span>
+<span id="cb36-35"><a href="scrape-bread-text-of-articles-1.html#cb36-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-36"><a href="scrape-bread-text-of-articles-1.html#cb36-36" aria-hidden="true" tabindex="-1"></a>    all_bread.append(bread_article)</span>
+<span id="cb36-37"><a href="scrape-bread-text-of-articles-1.html#cb36-37" aria-hidden="true" tabindex="-1"></a>    i <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb36-38"><a href="scrape-bread-text-of-articles-1.html#cb36-38" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">&quot;Scraping article &quot;</span>, i, <span class="st">&quot;/&quot;</span>, <span class="bu">len</span>(df_guardian.index))</span>
+<span id="cb36-39"><a href="scrape-bread-text-of-articles-1.html#cb36-39" aria-hidden="true" tabindex="-1"></a>            </span>
+<span id="cb36-40"><a href="scrape-bread-text-of-articles-1.html#cb36-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-41"><a href="scrape-bread-text-of-articles-1.html#cb36-41" aria-hidden="true" tabindex="-1"></a><span class="co">#making a new column in df containing all the breadtext for each observation respectively</span></span>
+<span id="cb36-42"><a href="scrape-bread-text-of-articles-1.html#cb36-42" aria-hidden="true" tabindex="-1"></a>df_guardian[<span class="st">&#39;bread_text&#39;</span>] <span class="op">=</span> all_bread</span></code></pre></div>
+</div>
+<div id="inspecting-the-bread-text-1" class="section level2" number="6.2">
+<h2><span class="header-section-number">6.2</span> Inspecting the bread text</h2>
+<p>We load the data into R.</p>
+<div class="sourceCode" id="cb37"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb37-1"><a href="scrape-bread-text-of-articles-1.html#cb37-1" aria-hidden="true" tabindex="-1"></a>df_guardian <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">&quot;data/guardian/data_additional/guardian_clean_cp3.csv&quot;</span>)</span></code></pre></div>
+<p>All right. Let’s see how the new coloumn looks when we load it into R. It is a wall of text - not very
+readable for a human, but that is quite allright.</p>
+<div class="sourceCode" id="cb38"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb38-1"><a href="scrape-bread-text-of-articles-1.html#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="co">#printing the breadtext from the 16. article.</span></span>
+<span id="cb38-2"><a href="scrape-bread-text-of-articles-1.html#cb38-2" aria-hidden="true" tabindex="-1"></a><span class="fu">c</span>(df_guardian[<span class="dv">16</span>,<span class="dv">4</span>])</span></code></pre></div>
+<pre><code>## $bread_text
+## [1] &quot;Long-frozen relations between Britain and Iran are thawing rapidly as fellow Europeans and the United States queue up to woo a regime only recently shunned as a pariah. Despite the unresolved Salman Rushdie affair, the Anglo-Iranian honeymoon is blossoming. A top Iranian foreign ministry official is due in London next week and a ground-breaking British ministerial visit to Tehran is possible later this year. Ali Ahani is paying a return visit after John Shepherd, the third most senior diplomat in the Foreign Office, held discreet talks in Tehran in July. Mr Ahani is the most senior Iranian official to come to Britain in a decade. One immediate prospect is a meeting between Robin Cook, the Foreign Secretary, and his Iranian counterpart, Kamal Kharrazi, at the United Nations General Assembly later this month. Britain wants to build on President Mohammed Khatami&#39;s positive attitude to the West and to encourage him in his struggle against hardline opponents. It is anxious not be left behind in trade and investment, especially in the energy sector, by less reticent European competitors finally free of the threat of US sanctions. Officials say that with the US now actively seeking improved ties after years of enmity, Tony Blair wants Britain to follow suit. Britain would like the Iranian regime to distance itself from the Rushdie fatwa. Tehran has given verbal assurances that no one will be sent to murder the author of the Satanic Verses, but insists that the edict cannot be annulled. One possibility is for the government to call for the bounty offered by a religious foundation to be dropped. \&quot;They know what we want,\&quot; a senior FO source said. Mr Rushdie&#39;s supporters are lobbying for a public meeting between the novelist and the Prime Minister to underline the Government&#39;s commitment to his safety. Derek Fatchett, the minister responsible for the Middle East, hopes to visit Tehran, though probably not in time for the city&#39;s international trade fair in October. Given public progress on Mr Rushdie, diplomatic relations could be upgraded to ambassadorial level. Plans are under way to expand the British mission and revive cultural activities by the British Council, which has been absent from Iran since the 1979 revolution. In recent weeks Britain has renewed short-insurance cover for exports to Iran and promised medium-term cover by the end of the year. Mr Fatchett gave a rare interview to the official Iranian news agency. And the FO issued a strong condemnation of terrorism after the opposition mojahedin claimed responsibility for assassinating the former head of the country&#39;s prisons&#39; administration. \&quot;This really illustrates the extent of the concessions the Foreign Office is making to appease the mullahs,\&quot; a mojahedin spokesman said. Italy and France have both sent senior ministers to Tehran, and Germany&#39;s foreign minister, Klaus Kinkel, said he could envisage making a visit in the near future. Last year Germany and all other EU members recalled their ambassadors from Tehran in protest when a German court ruled that senior Iranian leaders had ordered the 1992 killings of Kurdish dissidents in Berlin. Since then improved ties with the West have been made possible by Tehran&#39;s dislike of the Taliban regime in Afghanistan, its helpful role in central Asia and the Gulf, and its less militant stance on the Arab-Israeli peace process. President Khatami and his supporters are said to have distanced themselves from state terrorism, but concern about the country&#39;s long-term nuclear ambitions remains.&quot;</code></pre>
+<p>We also check how many articles were failed to scrape. That number is 6.826 which is ~ 40% of all the articles. This is quite a lot, but we still have 9609 articles left.</p>
+<div class="sourceCode" id="cb40"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb40-1"><a href="scrape-bread-text-of-articles-1.html#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="co">#checking how many articles failed to scrape</span></span>
+<span id="cb40-2"><a href="scrape-bread-text-of-articles-1.html#cb40-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sum</span>(<span class="fu">is.na</span>(df_guardian<span class="sc">$</span>bread_text))</span></code></pre></div>
+<pre><code>## [1] 6826</code></pre>
+<p>Let’s inspect these missing articles a bit further. Do they come from a specific time period?</p>
+<div class="sourceCode" id="cb42"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb42-1"><a href="scrape-bread-text-of-articles-1.html#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="co">#making a dataframe containing the sum of missing articles for each date</span></span>
+<span id="cb42-2"><a href="scrape-bread-text-of-articles-1.html#cb42-2" aria-hidden="true" tabindex="-1"></a>y1 <span class="ot">&lt;-</span> df_guardian <span class="sc">%&gt;%</span> </span>
+<span id="cb42-3"><a href="scrape-bread-text-of-articles-1.html#cb42-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(<span class="fu">is.na</span>(bread_text)) <span class="sc">%&gt;%</span> </span>
+<span id="cb42-4"><a href="scrape-bread-text-of-articles-1.html#cb42-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(date) <span class="sc">%&gt;%</span> </span>
+<span id="cb42-5"><a href="scrape-bread-text-of-articles-1.html#cb42-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">tally</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb42-6"><a href="scrape-bread-text-of-articles-1.html#cb42-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">rename</span>(<span class="at">missing_articles =</span> n) <span class="sc">%&gt;%</span> </span>
+<span id="cb42-7"><a href="scrape-bread-text-of-articles-1.html#cb42-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ungroup</span>()</span>
+<span id="cb42-8"><a href="scrape-bread-text-of-articles-1.html#cb42-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-9"><a href="scrape-bread-text-of-articles-1.html#cb42-9" aria-hidden="true" tabindex="-1"></a><span class="co">#making a dataframe containing the sum of articles for each date</span></span>
+<span id="cb42-10"><a href="scrape-bread-text-of-articles-1.html#cb42-10" aria-hidden="true" tabindex="-1"></a>y2 <span class="ot">&lt;-</span> df_guardian <span class="sc">%&gt;%</span> </span>
+<span id="cb42-11"><a href="scrape-bread-text-of-articles-1.html#cb42-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(bread_text)) <span class="sc">%&gt;%</span></span>
+<span id="cb42-12"><a href="scrape-bread-text-of-articles-1.html#cb42-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(date) <span class="sc">%&gt;%</span> </span>
+<span id="cb42-13"><a href="scrape-bread-text-of-articles-1.html#cb42-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">tally</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb42-14"><a href="scrape-bread-text-of-articles-1.html#cb42-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">rename</span>(<span class="at">articles =</span> n) <span class="sc">%&gt;%</span> </span>
+<span id="cb42-15"><a href="scrape-bread-text-of-articles-1.html#cb42-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ungroup</span>()</span>
+<span id="cb42-16"><a href="scrape-bread-text-of-articles-1.html#cb42-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-17"><a href="scrape-bread-text-of-articles-1.html#cb42-17" aria-hidden="true" tabindex="-1"></a><span class="co">#joining the two dataframes together and plotting articles and missing articles a ton top of each other according to date.</span></span>
+<span id="cb42-18"><a href="scrape-bread-text-of-articles-1.html#cb42-18" aria-hidden="true" tabindex="-1"></a><span class="fu">left_join</span>(y2, y1) <span class="sc">%&gt;%</span> </span>
+<span id="cb42-19"><a href="scrape-bread-text-of-articles-1.html#cb42-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pivot_longer</span>(</span>
+<span id="cb42-20"><a href="scrape-bread-text-of-articles-1.html#cb42-20" aria-hidden="true" tabindex="-1"></a>        <span class="at">cols =</span> <span class="fu">c</span>(<span class="st">&quot;missing_articles&quot;</span>, <span class="st">&quot;articles&quot;</span>),</span>
+<span id="cb42-21"><a href="scrape-bread-text-of-articles-1.html#cb42-21" aria-hidden="true" tabindex="-1"></a>        <span class="at">names_to =</span> <span class="st">&quot;article_type&quot;</span></span>
+<span id="cb42-22"><a href="scrape-bread-text-of-articles-1.html#cb42-22" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">%&gt;%</span> </span>
+<span id="cb42-23"><a href="scrape-bread-text-of-articles-1.html#cb42-23" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggplot</span>() <span class="sc">+</span> </span>
+<span id="cb42-24"><a href="scrape-bread-text-of-articles-1.html#cb42-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">x=</span>date, <span class="at">y=</span> value, <span class="at">color =</span> article_type) <span class="sc">+</span> </span>
+<span id="cb42-25"><a href="scrape-bread-text-of-articles-1.html#cb42-25" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_line</span>() <span class="sc">+</span></span>
+<span id="cb42-26"><a href="scrape-bread-text-of-articles-1.html#cb42-26" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">y =</span> <span class="st">&quot;hits&quot;</span>)</span></code></pre></div>
+<div class="figure"><span style="display:block;" id="fig:yeye2"></span>
+<img src="_main_files/figure-html/yeye2-1.png" alt="Timeline of the number of missing articles compared to intact articles." width="960" />
+<p class="caption">
+Figure 6.1: Timeline of the number of missing articles compared to intact articles.
+</p>
+</div>
+<p>Eyeballing figure <a href="scrape-bread-text-of-articles-1.html#fig:yeye2">6.1</a> it is the case that the missing articles stems from certain time periods around 2001 and also around 2009-2010. The implications for the further analysis is that there will be some weak points in the timeline, where the number of articles to be analyzed are a bit sparse. Furthermore, some valueable articles might be missing at crucial points in the timeline. However, there are still not any points in the timeline where the number of articles drops completely, so that is good.</p>
+<p>Finally we save a new dataframe where the articles with missing bread text are filtered out. Our new dataframe has 9.609 rows corresponding to 9.609 articles.</p>
+<div class="sourceCode" id="cb43"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb43-1"><a href="scrape-bread-text-of-articles-1.html#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="co">#filtering out missing articles</span></span>
+<span id="cb43-2"><a href="scrape-bread-text-of-articles-1.html#cb43-2" aria-hidden="true" tabindex="-1"></a>df_guardian <span class="ot">&lt;-</span> df_guardian <span class="sc">%&gt;%</span>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(bread_text))</span>
+<span id="cb43-3"><a href="scrape-bread-text-of-articles-1.html#cb43-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-4"><a href="scrape-bread-text-of-articles-1.html#cb43-4" aria-hidden="true" tabindex="-1"></a><span class="co">#saving</span></span>
+<span id="cb43-5"><a href="scrape-bread-text-of-articles-1.html#cb43-5" aria-hidden="true" tabindex="-1"></a><span class="fu">write_csv</span>(df_guardian, <span class="st">&quot;data/guardian/guardian_clean.csv&quot;</span>)</span></code></pre></div>
+
+</div>
+</div>
+
+
+
+            </section>
+
+          </div>
+        </div>
+      </div>
+<a href="cleaning-the-data-1.html" class="navigation navigation-prev " aria-label="Previous page"><i class="fa fa-angle-left"></i></a>
+<a href="preprocess-breadtext-for-both-datasets.html" class="navigation navigation-next " aria-label="Next page"><i class="fa fa-angle-right"></i></a>
+    </div>
+  </div>
+<script src="libs/gitbook-2.6.7/js/app.min.js"></script>
+<script src="libs/gitbook-2.6.7/js/clipboard.min.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-search.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-sharing.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-fontsettings.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-bookdown.js"></script>
+<script src="libs/gitbook-2.6.7/js/jquery.highlight.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-clipboard.js"></script>
+<script>
+gitbook.require(["gitbook"], function(gitbook) {
+gitbook.start({
+"sharing": {
+"github": false,
+"facebook": true,
+"twitter": true,
+"linkedin": false,
+"weibo": false,
+"instapaper": false,
+"vk": false,
+"whatsapp": false,
+"all": ["facebook", "twitter", "linkedin", "weibo", "instapaper"]
+},
+"fontsettings": {
+"theme": "white",
+"family": "sans",
+"size": 2
+},
+"edit": {
+"link": "https://github.com/USERNAME/REPO/edit/BRANCH/06_guardianbreadtext.Rmd",
+"text": "Edit"
+},
+"history": {
+"link": null,
+"text": null
+},
+"view": {
+"link": null,
+"text": null
+},
+"download": ["_main.pdf", "_main.epub"],
+"search": {
+"engine": "fuse",
+"options": null
+},
+"toc": {
+"collapse": "subsection"
+}
+});
+});
+</script>
+
+</body>
+
+</html>
