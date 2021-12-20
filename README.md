@@ -17,7 +17,7 @@ It would also be useful to incorporate a non-western newspaper such as Al Jazeer
 The most relevant file in the repository is the *Reproducibility Notebook*. 
 This file presents all the accompanying code as a notebook using r-markdown and the package bookdown. 
 Here is an overview of the content in the reproducibility notebook.
-![Overview of the Reproducibility Notebook](images/flowchart reproducibility notebook.png)
+![Overview of the Reproducibility Notebook](images/flowchart_reproducibility_notebook.png)
 
 * In step 1 I acquire the data needed and tidy so it is ready for analysis. 
 * In step 2 I make Named Entity Recognition (NER) and plot.
