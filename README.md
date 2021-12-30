@@ -32,6 +32,9 @@ There are two options to view the reproducibility notebook. I recommend option 1
 *_book* and open the file named *index.html*. I open the file in Google Chrome and it runs smoothly. 
 2. The quick but slightly buggy option: Simply go to the webpage: https://htmlpreview.github.io/?https://raw.githubusercontent.com/ah140797/news_media_NLP/master/_book/index.html
 
+### Project Report
+
+The project report can be found under the filename *project_report.pdf*. This report can be opened and read directly from GitHub. 
 
 ### Other files
 
